@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 scripts/regen_all.py:*)",
+      "Bash(python3 scripts/check_params.py:*)",
+      "Bash(python3 scripts/check_style.py:*)",
+      "Bash(python3 scripts/render_scad.py:*)",
+      "Bash(scripts/render_scad.py:*)",
+      "Bash(python3 scripts/panels.py:*)",
+      "Bash(python3 scripts/render_hero.py:*)"
+    ]
+  }
+}
