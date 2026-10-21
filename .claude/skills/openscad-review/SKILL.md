@@ -31,7 +31,7 @@ positions.
 - Every knob a user might change is a Customizer parameter at the top of
   the model file and an argument of the model's module.
 - Shared values come from cad/design_params.scad, never a local copy.
-- Component dimensions come from the catalog in cad/lib/, never a
+- Component dimensions come from catalog/components.json, never a
   number typed into a panel or guide.
 - Prints without support in the modeled orientation: nothing starts
   above the bed with a flat underside, no horizontal round holes without

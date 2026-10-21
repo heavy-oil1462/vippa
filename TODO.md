@@ -1,28 +1,32 @@
 # TODO
 
-## Phase 1: foundation (this PR)
+## Phase 1: foundation
 
 - [x] Repo conventions: shared params, param guard, style guard
 - [x] Pipeline: regen_all with the read-only `--check` gate
 - [x] Skills: verify, regen-outputs, openscad-review
 - [x] CI running the verify gate (on the `ci-workflow` branch until a
       token with workflow scope pushes it)
-- [x] First calibration gauge: drill guide bore fit
 
 ## Phase 2: hardware
 
-- [ ] Settle the open questions in docs/CONCEPT.md
-- [ ] Component catalog in cad/lib/ with sourced dimensions
-- [ ] Parametric panel model driven by a component list
-- [ ] Drill guide generated from the same panel layout
-- [ ] DXF export of the panel for a CNC router
-- [ ] Back cavity, cover and mounting
-- [ ] Assembly render as the README image
-- [ ] Bill of materials
+- [x] Panel configs in JSON, validated against the catalog
+- [x] Component catalog with the first toggle (placeholder values)
+- [x] Punch template (front) and router template (back) with edge fences
+- [x] Punch guide gauge
+- [x] Photoreal README renders (Blender Cycles, like pourbot)
+- [ ] Measure the real toggles and replace the placeholder catalog values
+- [ ] Measure the center punch, copy ring and bit; set design_params
+- [ ] Print and test the first panel's templates on scrap
+- [ ] Back cover and its rebate
+- [ ] Toggle anti-rotation
+- [ ] Mounting (wall and desk)
+- [ ] More families: encoders, rotary switches, pilot lamps, meters
+- [ ] Bill of materials generated from the panel and catalog
 
 ## Phase 3: firmware
 
 - [ ] Adopt esphome-skills (validation gate, simulator)
-- [ ] ESPHome packages per component family
+- [ ] ESPHome config generated from the panel JSON
 - [ ] Analog meter driver with calibration
 - [ ] Home Assistant integration examples

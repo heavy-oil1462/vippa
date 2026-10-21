@@ -1,25 +1,36 @@
 #!/usr/bin/env python3
 """Regenerate all derived artifacts for Vippa in one command.
 
-Run after any change to cad/ (see the regen-outputs skill). Never
-hand-compose openscad command lines for this.
+Run after any change to cad/, catalog/ or panels/ (see the regen-outputs
+skill). Never hand-compose openscad command lines for this.
 
 Pipeline:
   1. scripts/check_params.py     shared dimensions are never shadowed
   2. scripts/check_style.py      docs and comments follow the writing rules
-  3. every model under cad/      -> stl/<category>/<name>.stl
+  3. scripts/panels.py           catalog and every panel config are valid
+  4. every model under cad/      -> build/<category>/<name>.stl
+  5. every panels/<name>.json    -> build/panels/<name>/
+       <name>.scad               wrapper to open in OpenSCAD
+       punch_template.stl        front template, print orientation
+       router_template.stl       back template, print orientation
+       front.png, back.png       quick reference renders of the panel
 
 A model is any .scad under cad/ except cad/lib/ (helpers) and
-design_params.scad (data). Each model must render warning-free with
-manifold status NoError.
+design_params.scad (data). Everything must render warning-free with
+manifold status NoError; a failed assert in cad/lib/panel.scad (router
+bit against cavity corner, template against bed size) is a FAIL.
 
-Prototyping phase: stl/ is gitignored while the models are iterated by
-eye in OpenSCAD. When designs settle the STLs (and DXFs for the CNC)
+The photoreal README images in media/ come from scripts/render_hero.py,
+not from here: Cycles takes minutes and is not byte deterministic.
+
+Prototyping phase: build/ is gitignored while the models are iterated
+by eye in OpenSCAD. When designs settle the STLs (and DXFs for the CNC)
 become committed build products and --check gains a byte comparison
 against them, the way skua does it.
 
 Usage:
-    scripts/regen_all.py [model ...]   # no args = everything
+    scripts/regen_all.py [name ...]    # no args = everything; a name is a
+                                       # model or a panel
     scripts/regen_all.py --check       # read-only gate (the verify skill and
                                        # CI): render everything to a temp dir,
                                        # touch nothing in the tree
@@ -31,12 +42,23 @@ import sys
 import tempfile
 from pathlib import Path
 
+import panels
 from render_scad import render
 
 ROOT = Path(__file__).resolve().parent.parent
 CAD = ROOT / "cad"
+BUILD = ROOT / "build"
 NON_MODELS = {"design_params"}
-GATES = ["check_params.py", "check_style.py"]
+GATES = ["check_params.py", "check_style.py", "panels.py"]
+# (output name, wrapper part, extra openscad args)
+PANEL_OUTPUTS = [
+    ("punch_template.stl", "punch", []),
+    ("router_template.stl", "router", []),
+    ("front.png", "panel", ["--imgsize=1000,700", "--camera=0,0,0,50,0,20,0",
+                            "--viewall", "--autocenter", "--colorscheme=Tomorrow"]),
+    ("back.png", "panel", ["--imgsize=1000,700", "--camera=0,0,0,130,0,20,0",
+                           "--viewall", "--autocenter", "--colorscheme=Tomorrow"]),
+]
 
 
 def models():
@@ -57,8 +79,7 @@ def run_one(scad: Path, out: Path, shown: Path, extra=None) -> bool:
     geom = re.search(r"Status:\s+(\w+)", proc.stderr)
     geom_ok = geom is None or geom.group(1) == "NoError"
     ok = proc.returncode == 0 and not warnings and geom_ok
-    print(f"[{'ok' if ok else 'FAIL'}] {scad.relative_to(ROOT)} -> {shown.relative_to(ROOT)}",
-          flush=True)
+    print(f"[{'ok' if ok else 'FAIL'}] {shown.relative_to(ROOT)}", flush=True)
     for w in warnings:
         print(f"        {w}")
     if not geom_ok:
@@ -75,14 +96,29 @@ def main(argv):
     ok = True
     for gate in GATES:
         ok &= subprocess.run([sys.executable, str(ROOT / "scripts" / gate)]).returncode == 0
+    if not ok:
+        return 1  # a bad panel config would only add render noise
 
     with tempfile.TemporaryDirectory() as td:
+        def target(real: Path) -> Path:
+            return Path(td) / real.relative_to(ROOT) if check else real
+
         for scad in models():
             if only and scad.stem not in only:
                 continue
-            stl = ROOT / "stl" / scad.relative_to(CAD).with_suffix(".stl")
-            out = Path(td) / stl.relative_to(ROOT) if check else stl
-            ok &= run_one(scad, out, stl)
+            stl = BUILD / scad.relative_to(CAD).with_suffix(".stl")
+            ok &= run_one(scad, target(stl), stl)
+
+        catalog, _ = panels.load_catalog()
+        for name in panels.panel_names():
+            if only and name not in only:
+                continue
+            real = BUILD / "panels" / name
+            scad = panels.wrapper(name, panels.load_panel(name), catalog,
+                                  target(real / f"{name}.scad"))
+            for out, part, extra in PANEL_OUTPUTS:
+                ok &= run_one(scad, target(real / out), real / out,
+                              ["-D", f'part="{part}"', *extra])
 
     return 0 if ok else 1
 

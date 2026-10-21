@@ -1,0 +1,10 @@
+{
+  "description": "First panel: an oak slab with three full size toggles in a row",
+  "board": {"w": 180, "h": 90, "t": 27, "chamfer": 2, "material": "oak"},
+  "cavity": {"face_t": 4, "rim": 18, "r": 8},
+  "components": [
+    {"id": "left", "type": "toggle_12mm", "x": 45, "y": 45},
+    {"id": "middle", "type": "toggle_12mm", "x": 90, "y": 45},
+    {"id": "right", "type": "toggle_12mm", "x": 135, "y": 45}
+  ]
+}

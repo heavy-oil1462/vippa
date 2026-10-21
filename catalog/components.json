@@ -1,0 +1,22 @@
+{
+  "toggle_12mm": {
+    "description": "Full size bat handle toggle, 15/32-32 NS threaded bushing (12 mm class)",
+    "family": "toggle",
+    "hole_d": 12.5,
+    "bushing_d": 11.9,
+    "bushing_len": 10.3,
+    "max_panel_t": 4.0,
+    "nut_af": 14.3,
+    "nut_t": 2.4,
+    "lever_d": 4.8,
+    "lever_len": 17.5,
+    "body": [
+      13.0,
+      13.5,
+      20.0
+    ],
+    "keepout_d": 30,
+    "measured": false,
+    "source": "PLACEHOLDER: typical values for the 15/32 in bushing class, not taken from a real part. Replace with calipers on the toggles you mount."
+  }
+}

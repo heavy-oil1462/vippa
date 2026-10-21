@@ -4,4 +4,4 @@ __pycache__/
 .claude/settings.local.json*
 
 # Prototyping phase: build products stay local until the models settle
-stl/
+build/
