@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+*.scad.bak
+.claude/settings.local.json*
+
+# Prototyping phase: build products stay local until the models settle
+stl/
