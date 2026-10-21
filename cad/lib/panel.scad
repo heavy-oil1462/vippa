@@ -14,6 +14,7 @@
 // ever mirrored by hand.
 
 include <../design_params.scad>
+use <../holders/battery_2aa_holder.scad>
 
 // Material color tags. scripts/render_hero.py maps each to a material and
 // fails on any other color. Keep-in-sync sweep: these, MATERIALS in
@@ -22,6 +23,8 @@ OAK = "#C8A165";
 CHROME = "#C0C0C0";
 BLACK = "#222222";
 PRINTED = "#E8E4DA";
+PCB = "#1E5C3A";
+CELL = "#2E4A9E";
 
 // Component record, written by scripts/panels.py. Keep-in-sync sweep:
 // these indices and COMPONENT_RECORD in panels.py.
@@ -37,6 +40,15 @@ function c_nut_t(c) = c[8];
 function c_lever_d(c) = c[9];
 function c_lever_len(c) = c[10];
 function c_body(c) = [c[11], c[12], c[13]];
+
+// Internal record (boards, batteries in the cavity), written by
+// scripts/panels.py. Size is already turned for rot. Keep-in-sync sweep:
+// these indices and wrapper() in panels.py.
+function i_id(m) = m[0];
+function i_finish(m) = m[1];
+function i_x(m) = m[2];
+function i_y(m) = m[3];
+function i_size(m) = [m[4], m[5], m[6]];
 
 // board = [w, h, t, chamfer], cavity = [face_t, rim, r]
 
@@ -90,13 +102,45 @@ module toggle_stand_in(c, t, face_t, throw = 0) {
     }
 }
 
+// An internal module lying on the cavity floor (the underside of the
+// face), reaching toward the open back. Only the envelope is a catalog
+// value; the detail inside it is for the renders. Keep-in-sync sweep for
+// finishes: FINISHES in panels.py.
+module internal_stand_in(m, floor_z) {
+    s = i_size(m);
+    long_x = s[0] >= s[1];
+    len_ = max(s[0], s[1]);
+    wid = min(s[0], s[1]);
+    translate([i_x(m), i_y(m), floor_z]) rotate([0, 0, long_x ? 0 : 90]) mirror([0, 0, 1]) {
+        if (i_finish(m) == "pcb") {
+            color(PCB) translate([-len_ / 2, -wid / 2, 0]) cube([len_, wid, 1.6]);
+            // radio module can toward the +x (antenna) end, USB at the other
+            color(CHROME) translate([len_ / 2 - 25, -9, 1.6]) cube([18, 18, 3.2]);
+            color(CHROME) translate([-len_ / 2, -4.5, 1.6]) cube([7.5, 9, 3.2]);
+            color(BLACK) for (sy = [-1, 1])
+                translate([-len_ / 2 + 10, sy * (wid / 2 - 2.5) - 1.25, 1.6])
+                    cube([len_ - 30, 2.5, s[2] - 1.6]);
+        } else if (i_finish(m) == "aa_holder") {
+            // the real printed holder, with two cells in it
+            color(PRINTED) battery_2aa_holder();
+            color(CELL) battery_2aa_cells();
+        } else
+            assert(false, str("no stand-in for finish ", i_finish(m)));
+    }
+}
+
 // The finished panel. Toggles alternate up and down so a render shows
 // both lever positions.
-module finished_panel(board, cavity, components) {
+module finished_panel(board, cavity, components, internals) {
     board_wood(board, cavity, components);
     for (i = [0 : len(components) - 1])
         if (c_family(components[i]) == "toggle")
             toggle_stand_in(components[i], board[2], cavity[0], i % 2 == 0 ? 14 : -14);
+    assert(len(internals) == 0 || holder_screw_len - holder_flange_t <= cavity[0] - face_skin,
+           str("holder screws reach ", holder_screw_len - holder_flange_t, " mm into a ",
+               cavity[0], " mm face, more than face_t - face_skin"));
+    for (m = internals)
+        internal_stand_in(m, board[2] - cavity[0]);
 }
 
 // Fence groove along the fence root, a diamond centered on the corner
@@ -195,15 +239,16 @@ module router_template_print(name, board, cavity) {
 // part: panel (finished board), punch, router (templates in print
 // orientation), hero (the panel standing, front toward -y), build (the
 // board with its punch template seated, the router template beside it)
-module panel(part, name, board, cavity, components) {
+module panel(part, name, board, cavity, components, internals = []) {
     if (part == "panel")
-        finished_panel(board, cavity, components);
+        finished_panel(board, cavity, components, internals);
     else if (part == "punch")
         punch_template_print(name, board, cavity, components);
     else if (part == "router")
         router_template_print(name, board, cavity);
     else if (part == "hero")
-        rotate([90, 0, 0]) translate([0, 0, -board[2]]) finished_panel(board, cavity, components);
+        rotate([90, 0, 0]) translate([0, 0, -board[2]])
+            finished_panel(board, cavity, components, internals);
     else if (part == "build") {
         board_wood(board, cavity, components);
         punch_template_in_place(name, board, cavity, components);

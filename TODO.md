@@ -18,6 +18,19 @@
 - [ ] Measure the real toggles and replace the placeholder catalog values
 - [ ] Measure the center punch, copy ring and bit; set design_params
 - [ ] Print and test the first panel's templates on scrap
+- [x] Room in the cavity for the ESP32 board and battery, checked
+- [x] Antenna keepout check
+- [x] Battery powered on two AA cells, printed holder screwed in from
+      the cavity, screw depth checked against the face
+- [x] Radio: Zigbee sleepy end device on an ESP32-H2 (docs/CONCEPT.md)
+- [ ] Measure on an ESP32-H2 dev kit with ESPHome zigbee: sleep current
+      and flip to light latency (target under 300 ms). Do this before the
+      hardware is final
+- [ ] Choose a low power ESP32-H2 board and its regulator, replace the
+      placeholder (docs/CONCEPT.md, Power)
+- [ ] Buy AA contacts, measure them, set contact_space in the holder
+- [ ] Measure the real sleep and wake current, update the budget
+- [ ] Tray for the ESP32 board
 - [ ] Back cover and its rebate
 - [ ] Toggle anti-rotation
 - [ ] Mounting (wall and desk)

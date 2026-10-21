@@ -55,6 +55,16 @@ router_margin = 30;     // template beyond the free board edges, for the
                         // router base to ride on
 rail_min = 15;          // narrowest template rail allowed
 
+// --- Holders screwed to the cavity floor ---
+// Internals (battery holder, later a board tray) screw to the underside
+// of the face from inside the cavity. The face is thin, so the screw
+// must stop face_skin short of the front: panel.scad asserts
+// holder_screw_len - holder_flange_t <= face_t - face_skin.
+holder_flange_t = 2;    // printed flange under the screw head
+holder_screw_d = 2.2;   // small self tapping screw, e.g. 2.2 x 4.5
+holder_screw_len = 4.5;
+face_skin = 1.5;        // wood left in front of a screw tip
+
 // --- Template labels ---
 label_depth = 0.6;      // text engraved into the exposed face
 label_size = 4;         // text size

@@ -9,6 +9,8 @@ Pipeline:
   2. scripts/check_style.py      docs and comments follow the writing rules
   3. scripts/panels.py           catalog and every panel config are valid
   4. every model under cad/      -> build/<category>/<name>.stl
+     catalog modules with a "model" (printed holders) must match their
+     catalog size: the STL bounding box is compared with "size"
   5. every panels/<name>.json    -> build/panels/<name>/
        <name>.scad               wrapper to open in OpenSCAD
        punch_template.stl        front template, print orientation
@@ -89,6 +91,34 @@ def run_one(scad: Path, out: Path, shown: Path, extra=None) -> bool:
     return ok
 
 
+VERTEX = re.compile(rb"vertex\s+(\S+)\s+(\S+)\s+(\S+)")
+SIZE_TOLERANCE = 0.05  # mm
+
+
+def bbox_size(stl: Path):
+    p = [tuple(map(float, m)) for m in VERTEX.findall(stl.read_bytes())]
+    return [max(v[i] for v in p) - min(v[i] for v in p) for i in range(3)]
+
+
+def check_model_sizes(catalog, stl_of) -> bool:
+    """Printed catalog modules: the model's envelope is the catalog size."""
+    ok = True
+    for name, entry in sorted(catalog.items()):
+        if "model" not in entry:
+            continue
+        stl = stl_of(ROOT / entry["model"])
+        if not stl.exists():
+            print(f"[FAIL] catalog {name}: model {entry['model']} has no STL")
+            ok = False
+            continue
+        got = bbox_size(stl)
+        good = all(abs(g - s) <= SIZE_TOLERANCE for g, s in zip(got, entry["size"]))
+        ok &= good
+        print(f"[{'ok' if good else 'FAIL'}] catalog {name}: model envelope"
+              f" {[round(g, 2) for g in got]}, catalog size {entry['size']}")
+    return ok
+
+
 def main(argv):
     check = "--check" in argv
     only = {a for a in argv[1:] if not a.startswith("--")}
@@ -110,6 +140,9 @@ def main(argv):
             ok &= run_one(scad, target(stl), stl)
 
         catalog, _ = panels.load_catalog()
+        if not only:
+            ok &= check_model_sizes(catalog, lambda scad: target(
+                BUILD / scad.relative_to(CAD).with_suffix(".stl")))
         for name in panels.panel_names():
             if only and name not in only:
                 continue

@@ -7,8 +7,9 @@ the hero-render skill); regenerate, never edit.*
 
 Rugged Home Assistant controls made from a solid piece of hardwood or
 brass, with real retro toggle switches, rotary knobs, pilot lamps and
-analog meters set into it. An ESP32 running ESPHome sits in a cavity
-behind the face. Open hardware and firmware.
+analog meters set into it. An ESP32-H2 running ESPHome and two AA cells
+sit in a cavity behind the face; no cable. It talks Zigbee, so a flip
+reaches Home Assistant at once instead of after a wifi reconnect. Open hardware and firmware.
 
 Status: the first panel, an oak slab with three toggles, is designed
 but not yet built. The toggle dimensions in the catalog are placeholders
@@ -27,7 +28,7 @@ register on fences along two edges of the board:
 
 ![The board with its punch template seated, and the router template](media/build.png)
 
-![The back of the panel: the routed cavity with the switch bodies](media/back.png)
+![The back of the panel: the routed cavity with the switch bodies, the battery and the ESP32 board](media/back.png)
 
 ## Your own panels
 
@@ -35,23 +36,30 @@ A panel is a small JSON file in `panels/`. This is the first one:
 
 ```json
 {
-  "description": "First panel: an oak slab with three full size toggles in a row",
-  "board": {"w": 180, "h": 90, "t": 27, "chamfer": 2, "material": "oak"},
-  "cavity": {"face_t": 4, "rim": 18, "r": 8},
+  "description": "First panel: an oak slab with three full size toggles in a row, on two AA cells",
+  "board": {"w": 190, "h": 100, "t": 27, "chamfer": 2, "material": "oak"},
+  "cavity": {"face_t": 4, "rim": 15, "r": 8},
   "components": [
-    {"id": "left", "type": "toggle_12mm", "x": 45, "y": 45},
-    {"id": "middle", "type": "toggle_12mm", "x": 90, "y": 45},
-    {"id": "right", "type": "toggle_12mm", "x": 135, "y": 45}
+    {"id": "left", "type": "toggle_12mm", "x": 45, "y": 65},
+    {"id": "middle", "type": "toggle_12mm", "x": 95, "y": 65},
+    {"id": "right", "type": "toggle_12mm", "x": 145, "y": 65}
+  ],
+  "internals": [
+    {"id": "battery", "type": "battery_2aa_holder", "x": 62, "y": 35},
+    {"id": "esp", "type": "esp32_devboard", "x": 135, "y": 34}
   ]
 }
 ```
 
 Positions are millimetres from the bottom left corner seen from the
-front. Component types come from `catalog/components.json`. The pipeline
-checks every panel before it renders anything: the face thin enough for
-the bushings, the cavity deep and wide enough for the switch bodies,
-neighbours far enough apart, the templates within the print bed and the
-router bit able to make the cavity corners.
+front. Components go through the face; internals (the ESP32 board and
+the battery) lie in the cavity behind it. Types come from
+`catalog/components.json`. The pipeline checks every panel before it
+renders anything: the face thin enough for the bushings, the cavity
+deep and wide enough for the switch bodies, board and battery, nothing
+behind the face crowding anything else, no metal in front of the
+radio antenna, neighbours far enough apart, the templates within the
+print bed and the router bit able to make the cavity corners.
 
 Your tools go in `cad/design_params.scad`: center punch, guide bushing,
 router bit and print bed.

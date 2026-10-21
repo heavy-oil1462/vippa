@@ -44,6 +44,8 @@ MATERIALS = {
     "C0C0C0": "chrome",
     "222222": "black",
     "E8E4DA": "printed",
+    "1E5C3A": "pcb",
+    "2E4A9E": "cell",
 }
 
 # shot -> (panel part, camera azimuth deg, elevation deg, distance factor)

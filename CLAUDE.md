@@ -15,7 +15,10 @@ switch.
   old radios. Feedback is mechanical (a detent, a lever position, a
   needle), never only a LED or a screen.
 - A panel is a JSON file in `panels/`: board size and thickness, the
-  back cavity and a list of components placed on the front face. The
+  back cavity, the components placed on the front face and the
+  internals (ESP32 board, battery) lying in the cavity. Battery
+  powered: two AA cells, deep sleep, wake on a toggle (docs/CONCEPT.md,
+  Power). The
   user's own panels live there too. Everything a panel needs is
   derived from that file; nothing about a panel is typed into a .scad.
   The same file will drive the firmware later.
@@ -37,6 +40,11 @@ switch.
 - Fits and tools are MEASURED, never tuned by eye: `punch_clearance`
   with the punch guide gauge, `punch_d`, `copy_ring_od` and `bit_d` on
   the user's own tools. They live in `cad/design_params.scad`.
+- Radio is Zigbee: an ESP32-H2 as a sleepy end device on the user's
+  coordinator, for instant response on battery. No wifi on the panel
+  (docs/CONCEPT.md, Radio). 2.4 GHz goes through the wood but not
+  through metal: nothing metal in a module's antenna keepout, no metal
+  back or face without an external antenna.
 - Firmware comes later and is built on esphome-skills
   (github.com/heavy-oil1462/esphome-skills), the same way as fika and
   frodas. Hardware first.
@@ -53,6 +61,10 @@ switch.
   `panel`, `punch`, `router` (templates in print orientation), `hero`
   and `build` (render scenes).
 - `cad/calibration/`: gauges for measured fits.
+- `cad/holders/`: printed parts that sit in the cavity (the AA battery
+  holder). A catalog module with a `model` field points at one, and
+  regen_all.py fails if the STL's bounding box differs from the catalog
+  size.
 - `scripts/`: Python tools, stdlib only. `hero_scene.py` runs inside
   Blender.
 - `media/`: the README renders, committed build products of

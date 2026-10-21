@@ -17,7 +17,8 @@ python3 scripts/regen_all.py <name>       # templates and previews into build/pa
   "description": "what this panel is",
   "board": {"w": 180, "h": 90, "t": 27, "chamfer": 2, "material": "oak"},
   "cavity": {"face_t": 4, "rim": 18, "r": 8},
-  "components": [{"id": "left", "type": "toggle_12mm", "x": 45, "y": 45}]
+  "components": [{"id": "left", "type": "toggle_12mm", "x": 45, "y": 65}],
+  "internals": [{"id": "esp", "type": "esp32_devboard", "x": 130, "y": 32, "rot": 0}]
 }
 ```
 
@@ -28,6 +29,13 @@ python3 scripts/regen_all.py <name>       # templates and previews into build/pa
   least the router bit radius.
 - type is a key of catalog/components.json. A part that is not there
   is added with the component-catalog skill first, never inlined here.
+- internals are catalog modules (ESP32 board, battery) lying in the
+  cavity, x, y their center seen from the front, rot 0 or 90. They must
+  keep 2 mm (INTERNAL_CLEARANCE in panels.py) from the cavity wall,
+  from each other and from every switch body and back nut.
+- A module with an antenna needs antenna_keepout mm past its antenna end
+  free of metal (switch bodies, battery). Put the antenna end toward a
+  cavity wall; wood in the keepout is fine.
 - id is the component's name; the firmware will use it later, so keep
   it stable and meaningful.
 
@@ -47,8 +55,14 @@ python3 scripts/regen_all.py <name>       # templates and previews into build/pa
   cavity depth) or pick a part with a longer bushing.
 - `cavity depth ... shallower than back nut plus body`: thicker board or
   thinner face.
-- `leaves the cavity`: move the part inward or shrink the rim.
+- `leaves the cavity` or `not ... clear of the cavity wall`: move the
+  part inward, shrink the rim or grow the board.
+- `... mm from ..., needs 2`: two things behind the face are too close.
+- `... is metal inside the antenna keepout`: turn the board so its
+  antenna end faces a wall with nothing metal in between.
 - `keepouts need`: spread the parts; keepout_d is in the catalog.
+- `holder screws reach ... mm into a ... mm face`: the face is too thin
+  for holder_screw_len; use shorter screws or a thicker face.
 - An assert from cad/lib/panel.scad during regen (bit radius, rail
   width, router base span, bed size) is a tooling limit: change the
   panel, never the assert.
