@@ -18,5 +18,32 @@
     "keepout_d": 30,
     "measured": false,
     "source": "PLACEHOLDER: typical values for the 15/32 in bushing class, not taken from a real part. Replace with calipers on the toggles you mount."
+  },
+  "esp32_devboard": {
+    "description": "ESP32-H2 board (Zigbee, no wifi) with an onboard PCB antenna at one end and a USB connector at the other",
+    "family": "module",
+    "size": [
+      60.0,
+      26.0,
+      12.0
+    ],
+    "finish": "pcb",
+    "antenna_end": "+x",
+    "antenna_keepout": 15.0,
+    "measured": false,
+    "source": "PLACEHOLDER: envelope of a generic ESP32 dev board, not a chosen part. The radio decision needs an ESP32-H2. Antenna keepout is a rule of thumb for PCB antennas; check the module datasheet. Replace with the board you use."
+  },
+  "battery_2aa_holder": {
+    "description": "Two AA cells in series in the printed holder, screwed to the cavity floor",
+    "family": "module",
+    "size": [
+      76.5,
+      34.0,
+      16.5
+    ],
+    "finish": "aa_holder",
+    "model": "cad/holders/battery_2aa_holder.scad",
+    "measured": false,
+    "source": "Envelope of cad/holders/battery_2aa_holder.scad (regen_all.py checks it). Cells per IEC 60086 LR6 maximum, 14.5 x 50.5. contact_space in the model is a placeholder until the bought contacts are measured."
   }
 }

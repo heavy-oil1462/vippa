@@ -52,14 +52,104 @@ measured or datasheet values.
 - Panel configs are JSON (stdlib, validated before rendering, readable
   by the firmware generator later).
 
+## Radio
+
+Zigbee, as a sleepy end device on an ESP32-H2, through the user's
+existing Zigbee coordinator (ZHA or Zigbee2MQTT). No wifi, no bridge.
+
+Why: the delay that makes smart switches feel slow is the device
+rejoining wifi and Home Assistant after each wake. A Zigbee end device
+stays joined to its parent while it sleeps, so a toggle wakes it and the
+report goes out at once, the way commercial battery switches work.
+Zigbee also acknowledges every frame, which keeps the lever and the
+light in agreement.
+
+How it was chosen (2026-10-21):
+
+- ESPHome has official Zigbee end device support on ESP32-C6 and H2;
+  its docs call the H2 more reliable. Support is basic: Home Automation
+  profile only, and a config change usually means re-pairing.
+- ESPHome has no Matter support. Its OpenThread component carries the
+  normal ESPHome API over Thread, the same connect handshake as wifi.
+  Matter would mean leaving ESPHome.
+- ESP-NOW to a plug-in bridge was the fallback: fast and all ESPHome,
+  but one more device in the house.
+- Risk: ESPHome documents its sleepy option for nRF52 only. Sleep
+  current and flip to light latency on the H2 must be measured on a
+  dev kit before the hardware is final. Target: under 300 ms.
+
+The antenna works at 2.4 GHz like wifi, through the wood:
+
+- Dry hardwood costs a few dB at panel thicknesses, not enough to
+  matter in a house. Wet or green wood costs much more: oil the panel,
+  never mount it fresh.
+- Metal is what kills the signal. A PCB antenna needs a zone with no
+  metal around its end: no battery can, switch body or wire bundle in
+  it. The panel check enforces this with the module's antenna_keepout,
+  so the board lies with its antenna end toward a cavity wall.
+- A metal back cover, a metal wall box or a brass face shields the
+  antenna completely. Those need a board with an external antenna
+  connector (u.FL) and the antenna placed in wood or out in the open.
+- Wall mounting puts the wall behind the antenna; plaster and wood are
+  fine, a metal stud or a mirror behind it is not.
+
+## Power
+
+Battery powered, two AA cells in a printed holder screwed to the cavity
+floor. The ESP32-H2 sleeps as a Zigbee sleepy end device, polling its
+parent now and then, and wakes at once when a toggle moves.
+
+Budget for two alkaline AA (about 2500 mAh, of which perhaps 2000 mAh
+is usable through a regulator). Unlike wifi, a flip costs almost
+nothing (a short radio burst), so the average sleep current, poll
+wakes included, sets the battery life:
+
+| Average sleep current | Per day | Two AA last |
+| --- | --- | --- |
+| 20 uA | 0.5 mAh | years, limited by the cells' shelf life |
+| 100 uA | 2.4 mAh | about 2 years |
+| 500 uA | 12 mAh | about 5 months |
+
+The ESP32-H2 figure is not known yet for ESPHome; measuring it is the
+first firmware task. Things that decide it:
+
+- The board. A typical dev board with a USB serial chip, a common LDO
+  and a power LED draws several mA asleep, which empties the cells in
+  weeks. It has to be a board made for deep sleep, or a bare module.
+- The regulator. Two AA give 3.2 V fresh and about 2 V flat; the ESP32
+  wants 3.0 to 3.6 V. A buck boost with a quiescent current under a
+  microamp uses the whole cell. Lithium AA (1.5 to 1.8 V flat curve)
+  give more capacity and work in the cold. NiMH (2.4 V for two) needs
+  the boost too.
+- The poll period: how often the sleeping device asks its parent for
+  messages. Longer polls save power; a switch only sends, so it can
+  poll rarely.
+- Switch wiring. A closed toggle on a pull up resistor draws current
+  for as long as it is on: about 70 uA through the ESP32's internal
+  pull up, more than the whole sleep budget. Use ON-ON (SPDT) toggles
+  wired between 3.3 V and ground, which hold the pin at a level with no
+  current, or very high value external pull ups.
+- Waking on a change. A toggle left on holds its pin high, so the wake
+  must be armed per pin for the opposite of its current level before
+  each sleep. The chip variant decides how easy that is; settle it with
+  the firmware.
+
+The holder's screws go into the 4 mm face from behind. panel.scad
+asserts that holder_screw_len minus holder_flange_t stops face_skin
+short of the front; with the defaults a 2.2 x 4.5 screw reaches 2.5 mm
+into the oak. Drill the pilot holes with a depth stop.
+
 ## Open questions
 
+- Charging: none for alkaline cells, or a board with a charger for
+  rechargeable cells.
 - Back of the panel: a cover plate in a rebate, or a screwed panel.
   Needs a second, shallower router template step.
 - Anti-rotation for toggles: a second small hole for the lock washer tab,
   or rely on the nut torque.
 - Mounting: wall (keyhole, French cleat) and desk (angled base).
-- Power: USB C, 5 V wall supply, or PoE (ESP32 Ethernet board).
+- The ESP32 board: generic placeholder for now. Holding it in the
+  cavity: printed tray screwed like the battery holder.
 - Boards larger than the print bed: split templates or a two-step
   registration.
 - Brass panels: same templates, or a separate path.

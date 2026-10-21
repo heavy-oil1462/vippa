@@ -99,6 +99,10 @@ def PBR(name):
         return principled(name, base_color=(0.02, 0.02, 0.02, 1), roughness=0.45)
     if name == "printed":
         return principled(name, base_color=(0.80, 0.77, 0.70, 1), roughness=0.6)
+    if name == "pcb":
+        return principled(name, base_color=(0.03, 0.18, 0.08, 1), roughness=0.35)
+    if name == "cell":
+        return principled(name, base_color=(0.05, 0.10, 0.40, 1), roughness=0.25)
     raise ValueError(f"no PBR definition for material {name!r}")
 
 

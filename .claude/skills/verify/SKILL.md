@@ -36,6 +36,9 @@ See CLAUDE.md for the plan once models settle.
 - `[FAIL] panels/...`: the layout breaks a rule; see the panel-config
   skill. `[info] ... not measured` is not a failure, it reminds that the
   catalog part still has placeholder values.
+- `[FAIL] catalog ...: model envelope`: a printed holder changed size.
+  Update size in the catalog to the printed envelope (the holder is the
+  source), then run panels.py: the layout may no longer fit.
 - `[FAIL]` with warnings: read them. An `assert` message means the knobs
   ask for impossible geometry; fix the knob, never the assert.
 - `[FAIL]` with a geometry status: the model is not cleanly manifold,
