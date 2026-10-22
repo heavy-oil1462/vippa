@@ -20,8 +20,9 @@
 - [ ] Print and test the first panel's templates on scrap
 - [x] Room in the cavity for the ESP32 board and battery, checked
 - [x] Antenna keepout check
-- [x] Battery powered on two AA cells, printed holder screwed in from
-      the cavity, screw depth checked against the face
+- [x] Battery powered on two AA cells, printed inline holder screwed in
+      from the cavity under the switch row, screw depth checked against
+      the face
 - [x] Radio: Zigbee sleepy end device on an ESP32-H2 (docs/CONCEPT.md)
 - [ ] Measure on an ESP32-H2 dev kit with ESPHome zigbee: sleep current
       and flip to light latency (target under 300 ms). Do this before the
