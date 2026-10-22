@@ -17,8 +17,8 @@ python3 scripts/regen_all.py <name>       # templates and previews into build/pa
   "description": "what this panel is",
   "board": {"w": 180, "h": 90, "t": 27, "chamfer": 2, "material": "oak"},
   "cavity": {"face_t": 4, "rim": 18, "r": 8},
-  "components": [{"id": "left", "type": "toggle_12mm", "x": 45, "y": 65}],
-  "internals": [{"id": "esp", "type": "esp32_devboard", "x": 130, "y": 32, "rot": 0}]
+  "components": [{"id": "left", "type": "toggle_12mm", "x": 45, "y": 55}],
+  "internals": [{"id": "esp", "type": "esp32_devboard", "x": 135, "y": 79, "rot": 0}]
 }
 ```
 

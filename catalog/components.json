@@ -34,11 +34,11 @@
     "source": "PLACEHOLDER: envelope of a generic ESP32 dev board, not a chosen part. The radio decision needs an ESP32-H2. Antenna keepout is a rule of thumb for PCB antennas; check the module datasheet. Replace with the board you use."
   },
   "battery_2aa_holder": {
-    "description": "Two AA cells in series in the printed holder, screwed to the cavity floor",
+    "description": "Two AA cells end to end in the printed inline holder, screwed to the cavity floor",
     "family": "module",
     "size": [
-      76.5,
-      34.0,
+      127.0,
+      18.5,
       16.5
     ],
     "finish": "aa_holder",
