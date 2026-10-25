@@ -38,3 +38,7 @@ an issue is ready, remove it when it has had nothing to do for a day.
 - 2026-10-25: the bot account had only a pending invitation and could
   not push; accept a repository invitation with
   `gh api user/repository_invitations` when pushes fail with 403.
+- 2026-10-25: the token lacks read:org, so `gh pr edit` and `gh pr view`
+  without `--json` fail on GraphQL. Move PR labels with the REST API:
+  `gh api -X DELETE repos/OWNER/REPO/issues/N/labels/status:review` and
+  `gh api repos/OWNER/REPO/issues/N/labels -f 'labels[]=status:changes'`.
