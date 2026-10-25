@@ -113,9 +113,12 @@ Conventions:
 
 ## Notes
 
-- The sandbox PAT has no workflow scope, so it cannot push changes to
-  `.github/workflows/`. Commit those on their own local branch
-  (`ci-workflow`) and leave the push to the user.
+- CI lives on main: `.github/workflows/verify.yml` runs
+  `regen_all.py --check` on every pull request and push to main, with
+  OpenSCAD and Mesa from the same nix pin. It adds no checks of its
+  own; a new check goes into regen_all.py. The sandbox PAT has workflow
+  scope, but workflow changes still need the owner's approval first
+  (DIRECTION.md).
 - Hamstra configures builds with wrapper .scad files, not JSON. Vippa
   uses JSON because Python validates it before anything renders and the
   firmware will read it too; the wrapper is generated instead.
