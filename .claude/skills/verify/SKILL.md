@@ -47,11 +47,11 @@ See CLAUDE.md for the plan once models settle.
 
 ## Notes
 
-- The sandbox PAT has no workflow scope, so it cannot push changes to
-  .github/workflows/. Commit those on their own local branch
-  (`ci-workflow`) and leave the push to the user. Never keep such a
-  commit on the working branch: every later push then needs a commit
-  reorder.
+- CI lives on main: `.github/workflows/verify.yml` runs exactly this
+  gate on every pull request and push to main, with OpenSCAD and Mesa
+  from the same nix pin. It adds no checks of its own; a new check goes
+  into regen_all.py. Workflow changes need the owner's approval first
+  (DIRECTION.md).
 - check_style.py builds its patterns with chr() on purpose: the agent's
   file write tool turns `\u2014` style escapes into the real characters,
   and the gate then flags its own source. Keep those patterns as chr()
