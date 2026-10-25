@@ -5,8 +5,8 @@
 - [x] Repo conventions: shared params, param guard, style guard
 - [x] Pipeline: regen_all with the read-only `--check` gate
 - [x] Skills: verify, regen-outputs, openscad-review
-- [x] CI running the verify gate (on the `ci-workflow` branch until a
-      token with workflow scope pushes it)
+- [x] CI running the verify gate on every pull request and push to
+      main (`.github/workflows/verify.yml`)
 
 ## Phase 2: hardware
 

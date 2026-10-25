@@ -6,9 +6,10 @@ nixpkgs and renders via EGL surfaceless. Never download binaries manually
 in the sandbox: there, everything comes from the nix store.
 
 No-nix escape hatch: set OPENSCAD=/path/to/openscad and that binary is
-used as-is, with the caller's environment untouched (CI does this with
-the snapshot AppImage under xvfb-run; a workstation with a working GL
-stack needs nothing extra). The nix path stays the pinned local default.
+used as-is, with the caller's environment untouched (a workstation with
+a working GL stack needs nothing extra). The nix path is the pinned
+default, and CI uses it too: Mesa's software rasterizer through EGL
+surfaceless needs no GPU or X server on the runner.
 
 Usage:
     scripts/render_scad.py <file.scad> [output.(png|stl|dxf)] [extra openscad args...]

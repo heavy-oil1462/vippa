@@ -1,0 +1,36 @@
+# The verify gate on every pull request and every push to main. A thin
+# wrapper over the single entry point: no checks of its own. OpenSCAD and
+# Mesa come from the nixpkgs pin in scripts/render_scad.py, and PNGs
+# render through EGL surfaceless on Mesa's software rasterizer, so the
+# runner needs no GPU, X server or xvfb.
+name: verify
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: cachix/install-nix-action@v31.11.2
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+      # The store holds only what the pin pulls in (OpenSCAD, Mesa,
+      # libglvnd), so the key follows the file that sets the pin.
+      - uses: nix-community/cache-nix-action@v7.0.2
+        with:
+          primary-key: nix-${{ runner.os }}-${{ hashFiles('scripts/render_scad.py') }}
+          restore-prefixes-first-match: nix-${{ runner.os }}-
+          gc-max-store-size-linux: 4G
+      - run: python3 scripts/regen_all.py --check
