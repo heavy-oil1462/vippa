@@ -65,6 +65,9 @@ MATERIALS = {
     "A8A9AD": "aluminium",
     "1A1210": "bakelite",
     "E8302A": "led",
+    "FF3A1C": "lamp_red",
+    "FFA319": "lamp_amber",
+    "3CD95A": "lamp_green",
 }
 
 # shot -> (panel part, camera azimuth deg, elevation deg, distance factor)

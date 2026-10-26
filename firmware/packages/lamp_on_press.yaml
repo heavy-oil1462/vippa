@@ -1,0 +1,13 @@
+# Lights a lamp when the pushbutton or encoder push it follows is
+# pressed, as the press's acknowledgement; each press restarts its
+# time. See lamp.yaml.
+#
+# Vars (one !include per lamp following a press, from
+# scripts/firmware.py):
+#   source  ESPHome id of the button's binary sensor
+#   lamp    ESPHome id of the lamp
+
+binary_sensor:
+  - id: !extend ${source}
+    on_press:
+      - script.execute: ${lamp}_show

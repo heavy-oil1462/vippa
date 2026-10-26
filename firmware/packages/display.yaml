@@ -25,18 +25,14 @@
 # (ADR-0002, what ESPHome itself needs); it prints the value while the
 # display is lit and nothing otherwise, which leaves every segment dark.
 #
-# Substitutions:
-#   display_time  how long the display stays lit after the last event.
-#                 Each event restarts it and holds off deep sleep.
+# How long it stays lit: display_time, from lit.yaml, which also holds
+# off deep sleep while anything on the panel is lit.
 #
 # Vars (one !include per display, from scripts/firmware.py):
 #   id       ESPHome id, a C++ identifier made from the component id
 #   pin_clk  GPIO of CLK, from the panel or the automatic order in
 #   pin_dio  GPIO of DIO   scripts/panels.py
 #   value    ESPHome id of the sensor it shows
-
-substitutions:
-  display_time: 5s
 
 globals:
   - id: ${id}_lit
@@ -59,7 +55,7 @@ script:
   - id: ${id}_show
     mode: restart
     then:
-      - deep_sleep.prevent: panel_sleep
+      - script.execute: panel_lit
       - globals.set:
           id: ${id}_lit
           value: "true"
@@ -69,4 +65,3 @@ script:
           id: ${id}_lit
           value: "false"
       - component.update: ${id}
-      - deep_sleep.allow: panel_sleep

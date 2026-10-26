@@ -1,0 +1,26 @@
+# Keeps the panel awake while anything on it is lit: a display or a
+# pilot lamp, for display_time after the last event that lit one. One
+# include per panel that has a display or a lamp, from
+# scripts/firmware.py.
+#
+# Each display and lamp runs its own script for its own light, and
+# every one of them runs panel_lit. Deep sleep is a single hold, so one
+# light going dark must not let the panel sleep while another is still
+# lit: panel_lit restarts on every event and allows sleep only
+# display_time after the last.
+#
+# Substitutions:
+#   display_time  how long a display or lamp stays lit after the last
+#                 event that lit it. Each event restarts it and holds
+#                 off deep sleep.
+
+substitutions:
+  display_time: 5s
+
+script:
+  - id: panel_lit
+    mode: restart
+    then:
+      - deep_sleep.prevent: panel_sleep
+      - delay: ${display_time}
+      - deep_sleep.allow: panel_sleep

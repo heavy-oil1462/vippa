@@ -14,7 +14,10 @@ pin_a, pin_b, pin_push).
 A display (display.yaml) is no entity: it shows the knob
 panels.display_source picks, and every event of the panel's other
 controls lights it, through one event package (FAMILY_EVENTS) per
-entity and display.
+entity and display. A pilot lamp (lamp.yaml) is no entity either: the
+control it follows (panels.lamp_source) lights it, through one event
+package (FOLLOW_EVENTS) per lamp. A panel with a display or a lamp
+includes lit.yaml once, which keeps it awake while one is lit.
 
 Firmware is a consumer of the panel and the catalog only: nothing on the
 CAD side reads anything written here.
@@ -42,6 +45,7 @@ PACKAGES = ROOT / "firmware" / "packages"
 BUILD = ROOT / "build"
 BASE = "h2_base.yaml"
 RADIO = "zigbee.yaml"
+LIT = "lit.yaml"
 # catalog family -> its package in firmware/packages/
 FAMILY_PACKAGES = {
     "toggle": "toggle.yaml",
@@ -49,6 +53,7 @@ FAMILY_PACKAGES = {
     "rotary": "rotary.yaml",
     "pushbutton": "pushbutton.yaml",
     "display": "display.yaml",
+    "lamp": "lamp.yaml",
 }
 # catalog family -> (event package, entity id suffix) for each entity of
 # the family whose events light a display. A rotary switch lights none:
@@ -57,6 +62,14 @@ FAMILY_EVENTS = {
     "toggle": [("display_on_binary.yaml", "")],
     "pushbutton": [("display_on_binary.yaml", "")],
     "encoder": [("display_on_turn.yaml", ""), ("display_on_binary.yaml", "_push")],
+}
+# catalog family -> (event package, entity id suffix) of the entity a
+# lamp following a component of the family follows: a toggle's position,
+# a press of a pushbutton or of an encoder's push.
+FOLLOW_EVENTS = {
+    "toggle": ("lamp_on_toggle.yaml", ""),
+    "pushbutton": ("lamp_on_press.yaml", ""),
+    "encoder": ("lamp_on_press.yaml", "_push"),
 }
 # catalog family -> catalog fields its package takes as vars
 FAMILY_VARS = {"rotary": ["positions"]}
@@ -98,6 +111,9 @@ def config(name, panel, catalog, out: Path) -> Path:
         f"  base: !include {rel(BASE)}",
         f"  radio: !include {rel(RADIO)}",
     ]
+    lit = panels.DISPLAYS | panels.LAMPS
+    if any(catalog[c["type"]]["family"] in lit for c in panel["components"]):
+        lines.append(f"  lit: !include {rel(LIT)}")
     for c in panel["components"]:
         entry = catalog[c["type"]]
         family = entry["family"]
@@ -114,7 +130,7 @@ def config(name, panel, catalog, out: Path) -> Path:
             shown = next(k for k in panel["components"]
                          if k["id"] == panels.display_source(c, panel["components"], catalog))
             lines.append(f"      value: {entity_id(catalog[shown['type']]['family'], shown['id'])}")
-        else:
+        elif family not in panels.LAMPS:
             lines.append(f"      name: {q(str(c['id']))}")
         lines += [f"      {'pin' if role == 'pin' else 'pin_' + role}: GPIO{pin}"
                   for role, pin in pins[c["id"]].items()]
@@ -133,6 +149,20 @@ def config(name, panel, catalog, out: Path) -> Path:
                     f"      source: {source}",
                     f"      display: {did}",
                 ]
+    for c in panel["components"]:
+        if catalog[c["type"]]["family"] not in panels.LAMPS:
+            continue
+        followed = panels.lamp_source(c, panel["components"], catalog)
+        family = catalog[followed["type"]]["family"]
+        package, suffix = FOLLOW_EVENTS[family]
+        lid = entity_id("lamp", c["id"])
+        lines += [
+            f"  {lid}_on: !include",
+            f"    file: {rel(package)}",
+            "    vars:",
+            f"      source: {entity_id(family, followed['id']) + suffix}",
+            f"      lamp: {lid}",
+        ]
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text("\n".join(lines) + "\n")
     return out

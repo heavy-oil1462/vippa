@@ -1,0 +1,44 @@
+# One pilot lamp, dark until an event of the control it follows lights
+# it (docs/CONCEPT.md, Component families): lit for display_time, the
+# same time as a display (lit.yaml), then dark again, so the lamp is off
+# whenever the panel sleeps.
+#
+# Wiring: the lamp between its pin and ground. It is a 3 V lamp with
+# its series resistor inside, so the pin drives it directly at led_ma
+# (10 mA for pilot_lamp_12mm, at most the pin's 20 mA, LED_MAX_MA in
+# scripts/panels.py). In deep sleep the pin lets go and the lamp is
+# dark.
+#
+# What it follows: one control on its own panel, "follows" in the
+# panel. ESPHome's Zigbee on the ESP32-H2 cannot receive a state from
+# Home Assistant yet (docs/CONCEPT.md, Open questions), so a lamp shows
+# a local control only, through one event package from
+# scripts/firmware.py:
+#   lamp_on_toggle.yaml  a toggle: lit after a flip to on, dark at once
+#                        after a flip to off
+#   lamp_on_press.yaml   a pushbutton or an encoder's push: lit after a
+#                        press
+# A flip or a press while the panel sleeps does not wake it yet, so it
+# lights on events during a wake only.
+#
+# Vars (one !include per lamp, from scripts/firmware.py):
+#   id   ESPHome id, a C++ identifier made from the component id
+#   pin  GPIO, from the panel or the automatic order in scripts/panels.py
+
+output:
+  - platform: gpio
+    id: ${id}
+    pin: ${pin}
+
+script:
+  - id: ${id}_show
+    mode: restart
+    then:
+      - script.execute: panel_lit
+      - output.turn_on: ${id}
+      - delay: ${display_time}
+      - output.turn_off: ${id}
+  - id: ${id}_dark
+    then:
+      - script.stop: ${id}_show
+      - output.turn_off: ${id}

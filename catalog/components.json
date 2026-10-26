@@ -100,6 +100,34 @@
     "measured": false,
     "source": "PLACEHOLDER: typical datasheet values for a 16 mm stainless anti-vandal momentary pushbutton with solder lugs, in the style of the Onpow GQ16 series; not taken from a real part. The head clamps the face against one back nut, so max_panel_t is the thread less the nut and a washer. body is the thread left behind the nut plus the switch and lugs. keepout_d is judgement, room for a fingertip and the nut wrench. Replace with calipers on the buttons you mount."
   },
+  "pilot_lamp_12mm": {
+    "description": "Pilot lamp: chrome bezel LED indicator for a 12 mm hole, M12 x 1 threaded body, domed coloured lens, LED with its series resistor built in for 3 V",
+    "family": "lamp",
+    "hole_d": 12.2,
+    "bushing_d": 12.0,
+    "bushing_len": 14.0,
+    "max_panel_t": 8.0,
+    "nut_af": 15.0,
+    "nut_t": 2.5,
+    "bezel_d": 15.0,
+    "bezel_h": 2.0,
+    "lens_d": 9.0,
+    "lens_h": 5.5,
+    "led_ma": 10.0,
+    "colors": [
+      "red",
+      "amber",
+      "green"
+    ],
+    "body": [
+      12.0,
+      12.0,
+      14.0
+    ],
+    "keepout_d": 22,
+    "measured": false,
+    "source": "PLACEHOLDER: typical datasheet values for a 12 mm metal LED indicator with a prominent chrome bezel and a domed lens, 3 V with the series resistor inside, in the style of the APEM Q12 series; not taken from a real part. The bezel clamps the face against one back nut, so max_panel_t is the thread less the nut and a washer. bezel_d, bezel_h is the chrome flange on the face, lens_d, lens_h the lens and its height above the face. body is the thread left behind the nut plus the solder pins. led_ma is the LED current at 3.3 V. keepout_d is judgement, room for the nut wrench. Replace with calipers on the lamps you mount."
+  },
   "led_segment_4d": {
     "description": "4 digit 0.36 in red LED 7 segment module on a TM1637 driver (CLK, DIO), seen through a window routed in the face, framed by a printed bezel",
     "family": "display",
