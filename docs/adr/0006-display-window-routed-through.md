@@ -1,6 +1,8 @@
 # ADR-0006: Display windows routed through the face from the back
 
-Status: Proposed
+Status: Accepted
+
+Accepted by the supervisor in review of #24.
 
 The window routed from the back with the router template as a deeper
 second step, and a front bezel, decided by the owner on #19

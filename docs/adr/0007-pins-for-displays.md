@@ -1,6 +1,8 @@
 # ADR-0007: Pins for displays: after the wake and ADC pins
 
-Status: Proposed
+Status: Accepted
+
+Accepted by the supervisor in review of #24.
 
 Proposed for #20.
 

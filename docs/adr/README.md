@@ -29,5 +29,5 @@ Add every new ADR to the index below in the same change.
 | [0003](0003-zigbee-is-the-first-radio.md) | Zigbee is the first radio | Accepted |
 | [0004](0004-pins-on-the-h2.md) | Pins on the ESP32-H2 | Accepted |
 | [0005](0005-pins-for-knobs.md) | Pins for knobs: named pins and a resistor ladder | Accepted |
-| [0006](0006-display-window-routed-through.md) | Display windows routed through the face from the back | Proposed |
-| [0007](0007-pins-for-displays.md) | Pins for displays: after the wake and ADC pins | Proposed |
+| [0006](0006-display-window-routed-through.md) | Display windows routed through the face from the back | Accepted |
+| [0007](0007-pins-for-displays.md) | Pins for displays: after the wake and ADC pins | Accepted |
