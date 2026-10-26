@@ -1,0 +1,25 @@
+# One toggle switch, reported as a Zigbee binary input (on/off).
+#
+# Wiring: an ON-ON (SPDT) toggle, common to the pin, the two throws to
+# 3.3 V and ground. The pin always sits at a level and no current flows
+# in either position, so the internal pull resistors stay off
+# (docs/CONCEPT.md, Power).
+#
+# Vars (one !include per toggle, from scripts/firmware.py):
+#   id    ESPHome id, a C++ identifier made from the component id
+#   name  entity name, the component id in the panel JSON
+#   pin   GPIO, from the panel or the automatic order in scripts/panels.py
+
+binary_sensor:
+  - platform: gpio
+    id: ${id}
+    name: ${name}
+    report: force
+    pin:
+      number: ${pin}
+      mode:
+        input: true
+        pullup: false
+        pulldown: false
+    filters:
+      - delayed_on_off: 10ms

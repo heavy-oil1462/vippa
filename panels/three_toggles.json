@@ -3,9 +3,9 @@
   "board": {"w": 190, "h": 107, "t": 27, "chamfer": 2, "material": "oak"},
   "cavity": {"face_t": 4, "rim": 15, "r": 8},
   "components": [
-    {"id": "left", "type": "toggle_12mm", "x": 45, "y": 53.5},
-    {"id": "middle", "type": "toggle_12mm", "x": 95, "y": 53.5},
-    {"id": "right", "type": "toggle_12mm", "x": 145, "y": 53.5}
+    {"id": "left", "type": "toggle_12mm", "x": 45, "y": 53.5, "pin": 10},
+    {"id": "middle", "type": "toggle_12mm", "x": 95, "y": 53.5, "pin": 11},
+    {"id": "right", "type": "toggle_12mm", "x": 145, "y": 53.5, "pin": 12}
   ],
   "internals": [
     {"id": "battery", "type": "battery_2aa_holder", "x": 95, "y": 30},

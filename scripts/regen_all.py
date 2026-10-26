@@ -16,6 +16,8 @@ Pipeline:
        punch_template.stl        front template, print orientation
        router_template.stl       back template, print orientation
        front.png, back.png       quick reference renders of the panel
+       <name>.yaml               ESPHome config (scripts/firmware.py),
+                                 validated with esphome config
 
 A model is any .scad under cad/ except cad/lib/ (helpers) and
 design_params.scad (data). Everything must render warning-free with
@@ -44,6 +46,7 @@ import sys
 import tempfile
 from pathlib import Path
 
+import firmware
 import panels
 from render_scad import render
 
@@ -147,11 +150,13 @@ def main(argv):
             if only and name not in only:
                 continue
             real = BUILD / "panels" / name
-            scad = panels.wrapper(name, panels.load_panel(name), catalog,
-                                  target(real / f"{name}.scad"))
+            panel = panels.load_panel(name)
+            scad = panels.wrapper(name, panel, catalog, target(real / f"{name}.scad"))
             for out, part, extra in PANEL_OUTPUTS:
                 ok &= run_one(scad, target(real / out), real / out,
                               ["-D", f'part="{part}"', *extra])
+            yaml = firmware.config(name, panel, catalog, target(real / f"{name}.yaml"))
+            ok &= firmware.validate(yaml, real / f"{name}.yaml")
 
     return 0 if ok else 1
 

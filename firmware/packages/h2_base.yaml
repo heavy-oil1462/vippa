@@ -1,0 +1,37 @@
+# Vippa base: an ESP32-H2 on two AA cells, asleep between wakes.
+#
+# Generated panel configs (scripts/firmware.py) include this first.
+# Substitutions:
+#   name         node name, set by the generator from the panel name
+#   poll_period  timer wake between sleeps. The panel rejoins its parent
+#                and reports every toggle on each wake, so this is also
+#                how often the parent hears from it. Keep it well under
+#                the parent's end device timeout (64 min in ESPHome).
+#   awake_time   how long a wake lasts before the panel sleeps again: the
+#                report goes out at once, this is the timeout behind it
+#
+# ESPHome 2026.5 arms no wake level per pin on the H2 (only ext1 with one
+# level for every pin), so a flip waits for the next timer wake. See
+# docs/CONCEPT.md, Open questions.
+
+substitutions:
+  poll_period: 15min
+  awake_time: 10s
+
+esphome:
+  name: ${name}
+  comment: Vippa panel, generated from the panel JSON
+
+esp32:
+  board: esp32-h2-devkitm-1
+  variant: esp32h2
+  framework:
+    type: esp-idf
+
+logger:
+  level: INFO
+
+deep_sleep:
+  id: panel_sleep
+  run_duration: ${awake_time}
+  sleep_duration: ${poll_period}

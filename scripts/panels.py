@@ -22,13 +22,17 @@ cavity corner, are asserts in cad/lib/panel.scad):
   - a module with an antenna keeps antenna_keepout mm past its antenna
     end free of metal (every component's body and nut, every other
     module), since metal there detunes the antenna; wood does not count
+  - a component's optional "pin" is a usable ESP32-H2 GPIO (PINS), used
+    once; components without one get the next free pin in PIN_ORDER,
+    and a panel that runs out of pins fails
 
 Catalog entries with "measured": false are reported as [info]: their
 values are placeholders until someone puts calipers on the real part.
 So is a panel whose components are not centered on the face: the
 bounding box center of their positions more than CENTER_TOLERANCE off
 the board center. Controls are centered unless the panel says why not,
-so this is not a failure, only kept visible.
+so this is not a failure, only kept visible. A toggle on a pin that
+cannot wake the H2 from deep sleep (outside WAKE_PINS) is [info] too.
 
 Usage:
     scripts/panels.py              # validate every panel, the gate
@@ -73,6 +77,17 @@ COMPONENT_RECORD = ["hole_d", "bushing_d", "bushing_len", "nut_af", "nut_t",
 INTERNAL_CLEARANCE = 2.0  # mm around internals, for wires and fingers
 CENTER_TOLERANCE = 1.0  # mm the components' center may sit off the board center
 PARTS = ["panel", "punch", "router", "hero", "build"]
+# ESP32-H2 GPIOs a component may use: 0 to 27 without the SPI flash pins
+# (6, 7, 15 to 21), the strapping pins (2, 3, 8, 9, 25) and USB (26, 27),
+# per the ESP32-H2 datasheet and ESPHome's esp32 pin checks.
+PINS = {0, 1, 4, 5, 10, 11, 12, 13, 14, 22, 23, 24}
+# The pins ESPHome can wake the H2 from deep sleep with (LP GPIO 7 to 14).
+WAKE_PINS = {10, 11, 12, 13, 14}
+# Components without a "pin" take the next free one in this order, wake
+# capable pins first, then the rest. 13 and 14 double as the 32 kHz
+# crystal pins and 23, 24 as UART0, so they come last in their groups.
+# Changing the order moves the wiring of every panel that relies on it.
+PIN_ORDER = [10, 11, 12, 13, 14, 4, 5, 0, 1, 22, 23, 24]
 
 
 def is_num(v):
@@ -166,6 +181,37 @@ def back_footprint(comp, entry):
     return (comp["x"] - half_w, comp["y"] - half_l, comp["x"] + half_w, comp["y"] + half_l)
 
 
+def assign_pins(panel):
+    """{component id: GPIO} with the automatic order filled in, and a list
+    of problems. Explicit pins win; the rest take PIN_ORDER in component
+    order, skipping pins already used."""
+    comps = panel.get("components", [])
+    pins, errors = {}, []
+    used = {}
+    for c in comps:
+        if "pin" not in c:
+            continue
+        pin = c["pin"]
+        if not (isinstance(pin, int) and not isinstance(pin, bool)) or pin not in PINS:
+            errors.append(f"{c.get('id')}: pin {pin!r} is not a usable ESP32-H2 GPIO,"
+                          f" use one of {sorted(PINS)}")
+            continue
+        if pin in used:
+            errors.append(f"{c.get('id')}: pin {pin} is already used by {used[pin]}")
+            continue
+        used[pin] = c.get("id")
+        pins[c.get("id")] = pin
+    free = [p for p in PIN_ORDER if p not in used]
+    for c in comps:
+        if "pin" in c:
+            continue
+        if not free:
+            errors.append(f"{c.get('id')}: no free ESP32-H2 pin left")
+            continue
+        pins[c.get("id")] = free.pop(0)
+    return pins, errors
+
+
 def validate(panel, catalog):
     """Problems with one panel, as a list of strings."""
     errors = []
@@ -185,6 +231,7 @@ def validate(panel, catalog):
     ids = [c.get("id") for c in comps + internals]
     for dup in {i for i in ids if ids.count(i) > 1}:
         errors.append(f"duplicate id {dup!r}")
+    errors += assign_pins(panel)[1]
 
     behind = []  # (id, rect) of everything behind the face
     placed = []
@@ -335,6 +382,11 @@ def main(argv):
         if off and max(map(abs, off)) > CENTER_TOLERANCE:
             print(f"[info]  {name}: components center {off[0]:+g}, {off[1]:+g} mm (x, y)"
                   " off the board center")
+        if not problems:
+            for cid, pin in assign_pins(panel)[0].items():
+                if pin not in WAKE_PINS:
+                    print(f"[info]  {name}: {cid} on GPIO{pin} cannot wake the ESP32-H2"
+                          f" from deep sleep (wake pins {sorted(WAKE_PINS)})")
         used = panel.get("components", []) + panel.get("internals", [])
         for kind in sorted({c.get("type") for c in used}):
             if kind in catalog and not catalog[kind]["measured"]:

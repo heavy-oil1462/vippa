@@ -44,7 +44,8 @@ _STORE_CACHE = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache")) / 
 # hydra has NOT built openscad-unstable on unstable (its lld link fails, so
 # `nix build nixpkgs#openscad-unstable` falls into an hour-long source build
 # that dies the same way), while the release branches carry the identical
-# snapshot prebuilt in cache.nixos.org.
+# snapshot prebuilt in cache.nixos.org. scripts/firmware.py takes ESPHome
+# (2026.5.1, Zigbee on the ESP32-H2) from this pin too.
 NIXPKGS = "github:NixOS/nixpkgs/nixos-26.05"
 
 

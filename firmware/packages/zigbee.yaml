@@ -1,0 +1,15 @@
+# The radio: Zigbee end device on the ESP32-H2 (ADR-0003). Entities in
+# the component packages become Zigbee endpoints through this package; a
+# later radio replaces it and leaves those packages alone.
+#
+# Substitutions:
+#   model  Zigbee model string, at most 31 characters, set by the generator
+#
+# ESPHome offers the sleepy end device option on nRF52 only, so on the H2
+# the panel deep sleeps and rejoins on each wake. See docs/CONCEPT.md,
+# Open questions.
+
+zigbee:
+  id: panel_radio
+  model: ${model}
+  power_source: BATTERY
