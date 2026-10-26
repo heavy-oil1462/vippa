@@ -23,6 +23,8 @@
 - [x] Battery powered on two AA cells, printed inline holder screwed in
       from the cavity under the switch row, screw depth checked against
       the face
+- [x] Controls centered on the face, internals around them; panels.py
+      reports an off center panel as [info]
 - [x] Radio: Zigbee sleepy end device on an ESP32-H2 (docs/CONCEPT.md)
 - [ ] Measure on an ESP32-H2 dev kit with ESPHome zigbee: sleep current
       and flip to light latency (target under 300 ms). Do this before the

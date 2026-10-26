@@ -37,16 +37,16 @@ A panel is a small JSON file in `panels/`. This is the first one:
 ```json
 {
   "description": "First panel: an oak slab with three full size toggles centered in a row, on two AA cells",
-  "board": {"w": 190, "h": 110, "t": 27, "chamfer": 2, "material": "oak"},
+  "board": {"w": 190, "h": 107, "t": 27, "chamfer": 2, "material": "oak"},
   "cavity": {"face_t": 4, "rim": 15, "r": 8},
   "components": [
-    {"id": "left", "type": "toggle_12mm", "x": 45, "y": 55},
-    {"id": "middle", "type": "toggle_12mm", "x": 95, "y": 55},
-    {"id": "right", "type": "toggle_12mm", "x": 145, "y": 55}
+    {"id": "left", "type": "toggle_12mm", "x": 45, "y": 53.5},
+    {"id": "middle", "type": "toggle_12mm", "x": 95, "y": 53.5},
+    {"id": "right", "type": "toggle_12mm", "x": 145, "y": 53.5}
   ],
   "internals": [
     {"id": "battery", "type": "battery_2aa_holder", "x": 95, "y": 30},
-    {"id": "esp", "type": "esp32_devboard", "x": 135, "y": 79}
+    {"id": "esp", "type": "esp32_devboard", "x": 135, "y": 77}
   ]
 }
 ```
