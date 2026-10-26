@@ -51,29 +51,35 @@ Sources (edited by hand) on the left, derived products on the right.
 
 ```
 catalog/components.json --+
-panels/<name>.json -------+--> scripts/panels.py --> scripts/regen_all.py
-cad/design_params.scad ---+    (validate, checks,      (gates, renders via
-cad/holders/*.scad -------+     generate wrapper)       render_scad.py)
-cad/lib/panel.scad -------+                              |
-                                                         v
-                                   build/ (STLs, previews, wrappers, ignored)
+panels/<name>.json -------+--> scripts/panels.py --+--> scripts/regen_all.py
+cad/design_params.scad ---+    (validate, checks,  |    (gates, renders via
+cad/holders/*.scad -------+     pins, wrapper)     |     render_scad.py,
+cad/bezels/*.scad --------+                        |     esphome config)
+cad/lib/panel.scad -------+                        |          |
+firmware/packages/*.yaml -----> scripts/firmware.py+          v
+                                  build/ (STLs, previews, wrappers,
+                                  ESPHome configs; ignored)
 scripts/render_hero.py + hero_scene.py (Blender) --> media/*.png (committed)
 ```
 
 - `panels/` and `catalog/` are data. Only Python reads JSON;
   `panels.py` validates every panel against the catalog and the layout
-  rules, then writes a wrapper .scad that passes values into
-  `cad/lib/panel.scad`.
+  rules, assigns pins (ADR-0004, 0005, 0007), then writes a wrapper
+  .scad that passes values into `cad/lib/panel.scad`. Every layout rule
+  has a failing case in `scripts/check_panel_rules.py`.
 - `cad/lib/panel.scad` holds all panel geometry: board, punch and
-  router templates, stand-ins and render scenes. It includes
-  design_params.scad and uses holders; it never reads JSON or holds a
-  panel's numbers.
-- `cad/holders/` are printed internals; a catalog module points at one
-  with `model`, and regen_all checks the STL envelope against the
-  catalog size.
+  router templates (with the step plate for display windows, ADR-0006),
+  stand-ins and render scenes. It includes design_params.scad and uses
+  holders and bezels; it never reads JSON or holds a panel's numbers.
+- `cad/holders/` (printed internals) and `cad/bezels/` (printed parts
+  on the face): a catalog part points at one with `model`, and
+  regen_all checks the STL envelope against the catalog.
 - `cad/calibration/` gauges stand alone on design_params.scad.
-- Firmware (later) will be a further consumer of the panel JSON, built
-  on esphome-skills; it may not feed anything back into the CAD side.
+- `firmware/packages/` are hand-written ESPHome packages: the H2 base,
+  the radio (`zigbee.yaml`, ADR-0003) and one per component family.
+  `scripts/firmware.py` includes them with substitutions per panel
+  (ADR-0002). Firmware reads the panel and catalog only; nothing on the
+  CAD side reads the firmware.
 
 Individual decisions and their reasons go into ADRs in docs/adr.
 
