@@ -1,8 +1,8 @@
-# 0004 Pins on the ESP32-H2
+# ADR-0004: Pins on the ESP32-H2
 
-## Status
+Status: Accepted
 
-Accepted (the supervisor, in review of #15)
+Decided by the supervisor, in review of #15.
 
 ## Context
 

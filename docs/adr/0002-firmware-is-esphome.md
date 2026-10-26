@@ -1,8 +1,8 @@
-# 0002 Firmware is ESPHome, built with esphome-skills
+# ADR-0002: Firmware is ESPHome, built with esphome-skills
 
-## Status
+Status: Accepted
 
-Accepted (the owner, 2026-10-26)
+Decided by the owner, 2026-10-26.
 
 ## Context
 
