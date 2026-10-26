@@ -1,0 +1,284 @@
+#!/usr/bin/env python3
+"""Bill of materials: what to buy, print and cut for each panel.
+
+Reads a panel through panels.py, the catalog and cad/design_params.scad,
+and writes build/panels/<name>/bom.md with these sections:
+
+  Buy          components and internals counted by type, with the
+               catalog's "buy" text and the extras one of them needs
+               (qty_per), a rotary switch's resistor ladder, the wire
+  Print        both templates, the step plate on a panel with a display,
+               every printed holder and bezel, each with its STL in build/
+  Wood         species and the board blank, w x h x t
+  Tools        center punch, a drill per hole size, the nut wrenches, the
+               router with its copy ring and bit and the bit depths
+  Wiring       each component's GPIO from panels.assign_pins
+  Not measured every catalog part on the panel still "measured": false
+
+No links, prices or part numbers: the catalog has none, since they would
+be guesses. design_params.scad has no cutting allowance for the board
+blank, so the blank is the finished size.
+
+check_wiring compares the Wiring section of a written bom.md with the
+pins in the panel's ESPHome config (scripts/firmware.py), so a wiring
+list that does not match the firmware fails the pipeline.
+
+The BOM is a consumer of the panel, the catalog and design_params.scad,
+like the firmware; nothing reads it.
+
+Usage:
+    scripts/bom.py [name ...]   # write the BOMs (default: every panel)
+"""
+
+import re
+import sys
+from collections import Counter
+from pathlib import Path
+
+import firmware
+import panels
+from check_params import ASSIGN
+
+ROOT = Path(__file__).resolve().parent.parent
+BUILD = ROOT / "build"
+WIRE = "Hookup wire, thin stranded, a few colours"
+WIRING = "## Wiring"
+
+
+def params():
+    """design_params.scad as {name: value}, numbers as float."""
+    out = {}
+    for m in ASSIGN.finditer(panels.PARAMS.read_text()):
+        try:
+            out[m.group(1)] = float(m.group(2))
+        except ValueError:
+            out[m.group(1)] = m.group(2)
+    return out
+
+
+def mm(v):
+    return f"{v:g}"
+
+
+def stl_of(model):
+    """The STL regen_all.py writes for a model under cad/."""
+    return (BUILD / Path(model).relative_to("cad")).with_suffix(".stl")
+
+
+def table(head, rows):
+    return ["| " + " | ".join(head) + " |", "|" + " --- |" * len(head),
+            *["| " + " | ".join(map(str, r)) + " |" for r in rows]]
+
+
+def ids(items):
+    return ", ".join(str(i["id"]) for i in items)
+
+
+def buy(panel, catalog, p):
+    """Rows of (qty, part, for, measured) and of (qty, extra, for)."""
+    groups = {}  # (type, lamp color) -> items, in panel order
+    for item in panel["components"] + panel.get("internals", []):
+        e = catalog[item["type"]]
+        color = panels.lamp_color(item, e) if e["family"] in panels.LAMPS else None
+        groups.setdefault((item["type"], color), []).append(item)
+    parts, extras = [], Counter()
+    users = {}
+    for (kind, color), items in groups.items():
+        e = catalog[kind]
+        b = e.get("buy", {})
+        if "part" in b:
+            text = b["part"] + (f", {color} lens" if color else "")
+            parts.append((len(items), text, ids(items), "yes" if e["measured"] else "no"))
+        extra = dict(b.get("qty_per", {}))
+        if e["family"] in panels.ADC_FAMILIES:
+            # the resistor ladder of firmware/packages/rotary.yaml (ADR-0005)
+            extra["resistor 470 k, for the position ladder"] = e["positions"] + 1
+            extra["capacitor 100 nF, pin to ground"] = 1
+        for text, n in extra.items():
+            text = text.format(**{k: mm(v) if isinstance(v, float) else v for k, v in p.items()})
+            extras[text] += n * len(items)
+            users.setdefault(text, []).extend(items)
+    rows = [(n, text, ids(users[text])) for text, n in extras.items()]
+    if panels.has_display(panel, catalog):
+        rows.append(("", "glue, for the display bezels", ids(
+            c for c in panel["components"] if panels.family_of(c, catalog) in panels.DISPLAYS)))
+    rows.append(("", WIRE, "every pin, 3.3 V and ground"))
+    return parts, rows
+
+
+def wiring_rows(panel, catalog):
+    pins, errors = panels.assign_pins(panel, catalog)
+    if errors:
+        raise ValueError("; ".join(errors))
+    return [(cid, role, f"GPIO{pin}") for cid, roles in pins.items() for role, pin in roles.items()]
+
+
+def bom(name, panel, catalog):
+    """The bill of materials for one valid panel, as Markdown lines."""
+    p = params()
+    b, cav, comps = panel["board"], panel["cavity"], panel["components"]
+    out = BUILD / "panels" / name
+    mounted = [c for c in comps if panels.family_of(c, catalog) in panels.MOUNTED]
+    displays = [c for c in comps if panels.family_of(c, catalog) in panels.DISPLAYS]
+    used = {c["type"]: catalog[c["type"]] for c in comps + panel.get("internals", [])}
+
+    parts, extras = buy(panel, catalog, p)
+    lines = [
+        f"# Bill of materials: {name}",
+        "",
+        f"Generated by scripts/bom.py from panels/{name}.json, the catalog and",
+        "cad/design_params.scad. Do not edit: change those and run",
+        "scripts/regen_all.py. Parts marked not measured have placeholder",
+        "values in the catalog; check them against the part you buy.",
+        "",
+        "## Buy",
+        "",
+        *table(["Qty", "Part", "For", "Measured"], parts),
+        "",
+        "Extras the parts need:",
+        "",
+        *table(["Qty", "Part", "For"], extras),
+        "",
+        "## Print",
+        "",
+    ]
+    prints = [(1, "punch template, front face", out / "punch_template.stl"),
+              (1, "router template, back face", out / "router_template.stl")]
+    if displays:
+        prints.append((1, "router template step plate, for the display windows",
+                       out / "router_step.stl"))
+    models = Counter()
+    for item in panel.get("internals", []) + displays:
+        if "model" in catalog[item["type"]]:
+            models[item["type"]] += 1
+    for kind, n in models.items():
+        e = catalog[kind]
+        what = "bezel" if e["family"] in panels.DISPLAYS else "holder"
+        prints.append((n, f"{what} for {kind}", stl_of(e["model"])))
+    lines += table(["Qty", "Part", "File"],
+                   [(n, what, f"`{f.relative_to(ROOT)}`") for n, what, f in prints])
+
+    depth = b["t"] - cav["face_t"]
+    lines += [
+        "",
+        "## Wood",
+        "",
+        f"One {panels.board_material(panel)} board, {mm(b['w'])} x {mm(b['h'])} x {mm(b['t'])} mm"
+        " (w x h x t).",
+        "",
+        "The two reference edges, bottom and left seen from the front, are",
+        "straight and square to each other. design_params.scad sets no",
+        "cutting allowance, so this is the finished size.",
+        "",
+        "## Tools",
+        "",
+        f"- Center punch, nose {mm(p['punch_d'])} mm (punch_d), longer than the"
+        f" {mm(p['punch_plate_t'])} mm punch template.",
+    ]
+    by_hole = {}
+    for c in mounted:
+        by_hole.setdefault(catalog[c["type"]]["hole_d"], []).append(c)
+    lines += [f"- Drill {mm(d)} mm, for {ids(cs)}." for d, cs in sorted(by_hole.items())]
+    by_nut = {}
+    for c in mounted:
+        by_nut.setdefault(catalog[c["type"]]["nut_af"], []).append(c)
+    lines += [f"- Wrench or nut driver {mm(af)} mm across flats, for the nuts of {ids(cs)}."
+              for af, cs in sorted(by_nut.items())]
+    lines += [
+        f"- Router with a guide bushing (copy ring) of {mm(p['copy_ring_od'])} mm outer"
+        f" diameter and a {mm(p['bit_d'])} mm straight bit.",
+        f"- Cavity: {mm(depth)} mm deep from the back, the bit {mm(depth + p['router_plate_t'])} mm"
+        f" below the router base on the {mm(p['router_plate_t'])} mm router template.",
+    ]
+    if displays:
+        lines += [
+            f"- Display windows: through the face, {mm(b['t'])} mm from the back, the bit"
+            f" {mm(b['t'] + p['router_plate_t'])} mm below the router base on the step plate.",
+            "- Chisel, to square the window corners to their punch marks.",
+        ]
+    if any(catalog[k]["family"] == "module" for k in models):
+        lines.append("- Screwdriver, for the holder screws.")
+    lines += ["- Soldering iron, for the wiring."]
+
+    lines += [
+        "",
+        WIRING,
+        "",
+        "Each component's GPIO on the ESP32-H2, the same as in the generated",
+        f"ESPHome config ({name}.yaml beside this file). A role is a pin of a",
+        "component with several (an encoder's push, a and b; a display's clk",
+        "and dio).",
+        "",
+        *table(["Component", "Role", "GPIO"], wiring_rows(panel, catalog)),
+        "",
+        "## Not measured",
+        "",
+    ]
+    unmeasured = [(k, e) for k, e in sorted(used.items()) if not e["measured"]]
+    lines += ([f"- {k}: {e['description']}." for k, e in unmeasured]
+              or ["Every part on this panel is measured."])
+    return lines
+
+
+def write(name, panel, catalog, out: Path) -> Path:
+    """Write the bill of materials for one valid panel to out (bom.md)."""
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text("\n".join(bom(name, panel, catalog)) + "\n")
+    return out
+
+
+def bom_pins(text):
+    """{(component id, role, GPIO)} from a bom.md's Wiring section."""
+    section = text.split(WIRING + "\n", 1)[1].split("\n## ", 1)[0]
+    rows = re.findall(r"(?m)^\| (.+?) \| (\w+) \| GPIO(\d+) \|$", section)
+    return {(cid, role, int(pin)) for cid, role, pin in rows}
+
+
+def yaml_pins(text):
+    """{(ESPHome id, role, GPIO)} from a generated ESPHome config."""
+    pins, eid = set(), None
+    for line in text.splitlines():
+        if re.match(r"  \S+: !include", line):
+            eid = None
+        if m := re.match(r"      id: (\S+)$", line):
+            eid = m.group(1)
+        if m := re.match(r"      pin(?:_(\w+))?: GPIO(\d+)$", line):
+            pins.add((eid, m.group(1) or "pin", int(m.group(2))))
+    return pins
+
+
+def check_wiring(panel, catalog, md: Path, yaml: Path, shown: Path) -> bool:
+    """The bom.md Wiring section lists the pins of the ESPHome config."""
+    eid = {str(c["id"]): firmware.entity_id(panels.family_of(c, catalog), c["id"])
+           for c in panel["components"]}
+    got = {(eid.get(cid, cid), role, pin) for cid, role, pin in bom_pins(md.read_text())}
+    want = yaml_pins(yaml.read_text())
+    ok = got == want and bool(want or not panel["components"])
+    print(f"[{'ok' if ok else 'FAIL'}] {shown.relative_to(ROOT)} (wiring matches {yaml.name})")
+    for row in sorted(got - want):
+        print(f"        in the BOM only: {row}")
+    for row in sorted(want - got):
+        print(f"        in the ESPHome config only: {row}")
+    return ok
+
+
+def main(argv):
+    names = argv[1:] or panels.panel_names()
+    catalog, errors = panels.load_catalog()
+    if errors:
+        print("[FAIL] catalog is invalid, run scripts/panels.py")
+        return 1
+    ok = True
+    for name in names:
+        panel = panels.load_panel(name)
+        if panels.validate(panel, catalog):
+            print(f"[FAIL] panels/{name}.json is invalid, run scripts/panels.py {name}")
+            ok = False
+            continue
+        out = write(name, panel, catalog, BUILD / "panels" / name / "bom.md")
+        print(f"[ok] {out.relative_to(ROOT)}")
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))

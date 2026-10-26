@@ -106,7 +106,8 @@ why in its description.
 1. Write or edit the JSON, run `panels.py <name>` until it is `[ok]`.
 2. Run `regen_all.py <name>`, then look at `front.png` and `back.png` in
    build/panels/<name>/ with the Read tool. State what they should show
-   first.
+   first. `bom.md` beside them is the panel's bill of materials, and its
+   Wiring section is the order to wire the controls in.
 3. Render its picture with `render_hero.py --panels --panel <name>`
    (hero-render skill) into media/panels/<name>.png, and give it a line
    in the README's Example panels section. If the panel is the hero

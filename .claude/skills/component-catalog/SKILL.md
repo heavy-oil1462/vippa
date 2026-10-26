@@ -41,6 +41,7 @@ nut, or the head of a pushbutton or lamp.
 | keepout_d | face clearance for fingers, knob and the nut wrench | judgement, say so in source |
 | measured | true only once every value above came off the real part | |
 | source | part number and where each value came from | |
+| buy | optional: `part`, a description to search for, and `qty_per`, the extras one needs (nuts, washers, knob) by count. The bill of materials (scripts/bom.py) lists them. No links, prices or part numbers | |
 
 ## Family fields (in front of the face)
 

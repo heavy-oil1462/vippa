@@ -47,6 +47,9 @@ cavity corner, are asserts in cad/lib/panel.scad):
     push, or a pushbutton), since the H2 cannot receive a state either,
     and its optional "color" is one of its catalog entry's colors
 
+A catalog entry may say what to buy for it, "buy" (buy_errors), for
+the bill of materials (scripts/bom.py).
+
 Catalog entries with "measured": false are reported as [info]: their
 values are placeholders until someone puts calipers on the real part.
 So is a panel whose components are not centered on the face: the
@@ -224,7 +227,29 @@ def load_catalog():
                           " with a numeric antenna_keepout")
         if not str(entry.get("source", "")).strip():
             errors.append(f"catalog {name}: source is empty, say where the values come from")
+        if "buy" in entry:
+            errors += buy_errors(name, entry["buy"])
     return catalog, errors
+
+
+def buy_errors(name, buy):
+    """Problems with an entry's optional buy object (the bill of
+    materials, scripts/bom.py): a part to search for and the extras one
+    of it needs, {description: count}. No links, prices or part numbers:
+    they would be guesses."""
+    if not (isinstance(buy, dict) and buy and set(buy) <= {"part", "qty_per"}):
+        return [f"catalog {name}: buy must be an object with part, qty_per or both"]
+    errors = []
+    part, extras = buy.get("part", "x"), buy.get("qty_per", {})
+    if not (isinstance(part, str) and part.strip()):
+        errors.append(f"catalog {name}: buy part must be a description to search for")
+    if not (isinstance(extras, dict) and all(
+            isinstance(k, str) and k.strip() and isinstance(v, int) and not isinstance(v, bool)
+            and v > 0 for k, v in extras.items())):
+        errors.append(f"catalog {name}: buy qty_per must map a description to a count above 0")
+    elif any("://" in t or "www." in t for t in [str(part), *extras]):
+        errors.append(f"catalog {name}: buy text names no shop links")
+    return errors
 
 
 def display_catalog_errors(name, entry):

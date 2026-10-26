@@ -109,6 +109,9 @@ binaries). OpenSCAD, Blender and ESPHome come from the nixpkgs pin in
   gets its case here.
 - `python3 scripts/firmware.py [--check] [name]`: write (and validate)
   the ESPHome configs only.
+- `python3 scripts/bom.py [name]`: write the bills of materials only,
+  `build/panels/<name>/bom.md`, from the catalog's `buy` text; regen_all
+  checks their wiring against the ESPHome config.
 - `python3 scripts/render_hero.py [shot] [--draft]`: photoreal README
   images into `media/` (Cycles, minutes; not part of verify).
 - `python3 scripts/render_scad.py <file.scad> <out.png|stl|dxf> [args]`:

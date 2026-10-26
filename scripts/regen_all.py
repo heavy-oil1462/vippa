@@ -22,6 +22,8 @@ Pipeline:
        front.png, back.png       quick reference renders of the panel
        <name>.yaml               ESPHome config (scripts/firmware.py),
                                  validated with esphome config
+       bom.md                    bill of materials (scripts/bom.py), its
+                                 wiring checked against <name>.yaml
 
 A model is any .scad under cad/ except cad/lib/ (helpers) and
 design_params.scad (data). Everything must render warning-free with
@@ -50,6 +52,7 @@ import sys
 import tempfile
 from pathlib import Path
 
+import bom
 import firmware
 import panels
 from render_scad import render
@@ -170,6 +173,8 @@ def main(argv):
                               ["-D", f'part="{part}"', *extra])
             yaml = firmware.config(name, panel, catalog, target(real / f"{name}.yaml"))
             ok &= firmware.validate(yaml, real / f"{name}.yaml")
+            md = bom.write(name, panel, catalog, target(real / "bom.md"))
+            ok &= bom.check_wiring(panel, catalog, md, yaml, real / "bom.md")
 
     return 0 if ok else 1
 
