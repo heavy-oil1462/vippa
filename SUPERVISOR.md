@@ -42,3 +42,6 @@ an issue is ready, remove it when it has had nothing to do for a day.
   without `--json` fail on GraphQL. Move PR labels with the REST API:
   `gh api -X DELETE repos/OWNER/REPO/issues/N/labels/status:review` and
   `gh api repos/OWNER/REPO/issues/N/labels -f 'labels[]=status:changes'`.
+- 2026-10-26: the runner leaves an ADR out of worker prompts unless it
+  starts `# ADR-NNNN: Title` with a plain `Status: X` line (see
+  docs/adr/README.md). Check a new ADR's first lines in review.
