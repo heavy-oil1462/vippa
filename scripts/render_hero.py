@@ -11,8 +11,9 @@
 The shots show HERO_PANEL as media/<shot>.png, or the panel given with
 --panel (into --out, so the README images are never overwritten by
 another panel). --panels renders PANEL_SHOT of every panel in panels/,
-or of the --panel ones, as <out>/panels/<name>.png: the example
-pictures in the README.
+or of the --panel ones, as <out>/panels/<name>.png, and the shots in
+PANEL_EXTRA_SHOTS as <name>_<shot>.png: the example pictures in the
+README.
 
 Pipeline: scripts/panels.py writes the wrapper for the panel, OpenSCAD
 exports the shot's part as a colored 3MF (the color() tags in
@@ -45,6 +46,9 @@ ROOT = Path(__file__).resolve().parent.parent
 SCENE = ROOT / "scripts" / "hero_scene.py"
 HERO_PANEL = "three_toggles"
 PANEL_SHOT = "hero"  # the shot --panels renders of each panel
+# panel -> further shots --panels renders of it, as <name>_<shot>.png:
+# the back of a panel whose cavity holds more than the usual internals
+PANEL_EXTRA_SHOTS = {"thermostat": ["back"]}
 
 # 3MF displaycolor (the color() tags in cad/lib/panel.scad) -> material
 # name. hero_scene.py owns the PBR definition for each name. Keep-in-sync
@@ -60,6 +64,7 @@ MATERIALS = {
     "2E4A9E": "cell",
     "A8A9AD": "aluminium",
     "1A1210": "bakelite",
+    "E8302A": "led",
 }
 
 # shot -> (panel part, camera azimuth deg, elevation deg, distance factor)
@@ -146,8 +151,10 @@ def main() -> int:
         if args.shots:
             ap.error("--panels renders the hero shot only, give no shots")
         out_dir = (args.out or ROOT / "media") / "panels"
-        jobs = [(name, PANEL_SHOT, out_dir / f"{name}.png")
-                for name in args.panel or panels.panel_names()]
+        jobs = [(name, shot, out_dir / (f"{name}.png" if shot == PANEL_SHOT else
+                                        f"{name}_{shot}.png"))
+                for name in args.panel or panels.panel_names()
+                for shot in [PANEL_SHOT] + PANEL_EXTRA_SHOTS.get(name, [])]
     else:
         if len(args.panel or []) > 1:
             ap.error("one --panel without --panels")

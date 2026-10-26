@@ -9,15 +9,17 @@ description: Add a panel part to catalog/components.json or replace its placehol
 python3 scripts/panels.py                 # validates the catalog, then every panel
 ```
 
-Five families. `toggle`, `encoder`, `rotary` and `pushbutton` mount
-through the face (`FRONT_FIELDS` in scripts/panels.py); `module`
-(ESP32 board, battery) lies in the cavity and is placed under
-`internals` in a panel.
+Six families. `toggle`, `encoder`, `rotary` and `pushbutton` mount
+through the face (`FRONT_FIELDS` in scripts/panels.py); `display` lies
+in the cavity behind a window through the face and is placed under
+`components` like them (ADR-0006); `module` (ESP32 board, battery)
+lies in the cavity and is placed under `internals` in a panel.
 
 In the catalog: `toggle_12mm`, `toggle_6mm` (toggle), `encoder_knob`
 (encoder with push and a knurled aluminium knob), `rotary_switch` (1
 pole 6 positions, bakelite pointer knob) and `pushbutton_16mm`
-(pushbutton), all placeholders.
+(pushbutton) and `led_segment_4d` (display, 4 digits of 0.36 in on a
+TM1637), all placeholders.
 
 ## Mount fields (every face mounted family, all required)
 
@@ -48,6 +50,21 @@ pushbutton's head.
 | rotary | knob_d, knob_h, positions | knob, and the number of switch positions (an integer, at least 2) |
 | pushbutton | cap_d, cap_h | head diameter and height above the face |
 
+## Display fields (all required but model)
+
+| Field | Meaning | How to get it |
+| --- | --- | --- |
+| digits | [w, h, height] of the LED block, height above the module's board | calipers, or the display datasheet |
+| window | [w, h] opening routed through the face, wider and taller than digits | digits plus a little, check on scrap |
+| body | [w, l, depth] the board and its plug behind the face underside | calipers |
+| bezel | [w, h, t] envelope of the printed bezel, covering the window by BEZEL_LAP all round | the bezel model |
+| model | repo path of the bezel .scad; regen_all.py fails if its STL bounding box differs from bezel | |
+| measured, source | as for toggles | |
+
+The face must lie between digits height less bezel t and digits
+height, so the LED block reaches through the face and stays inside the
+bezel; panels.py checks it per panel.
+
 ## Module fields
 
 | Field | Meaning | How to get it |
@@ -67,7 +84,10 @@ pushbutton's head.
   in scripts/panels.py, a stand-in module and a case in finished_panel()
   in cad/lib/panel.scad, and a firmware package in FAMILY_PACKAGES
   (firmware skill); one that takes several pins goes into FAMILY_PINS
-  (ADR-0005). A new module finish needs a branch in internal_stand_in()
+  (ADR-0005), and one that only drives its pins into
+  OUTPUT_FAMILIES (ADR-0007). A new display needs its bezel in
+  cad/bezels/; the stand-in draws every bezel with display_bezel() from
+  the catalog values. A new module finish needs a branch in internal_stand_in()
   and FINISHES in panels.py. Keep-in-sync sweep for record fields:
   COMPONENT_RECORD and FRONT_FIELDS in panels.py and the c_* functions
   in panel.scad. A new stand-in color goes into the material sweep

@@ -11,6 +11,11 @@ its id in the panel JSON, on the pins panels.assign_pins gives it: var
 pin for a family's only pin, pin_<role> for the others (an encoder's
 pin_a, pin_b, pin_push).
 
+A display (display.yaml) is no entity: it shows the knob
+panels.display_source picks, and every event of the panel's other
+controls lights it, through one event package (FAMILY_EVENTS) per
+entity and display.
+
 Firmware is a consumer of the panel and the catalog only: nothing on the
 CAD side reads anything written here.
 
@@ -43,6 +48,15 @@ FAMILY_PACKAGES = {
     "encoder": "encoder.yaml",
     "rotary": "rotary.yaml",
     "pushbutton": "pushbutton.yaml",
+    "display": "display.yaml",
+}
+# catalog family -> (event package, entity id suffix) for each entity of
+# the family whose events light a display. A rotary switch lights none:
+# its first reading at every wake looks like a turn.
+FAMILY_EVENTS = {
+    "toggle": [("display_on_binary.yaml", "")],
+    "pushbutton": [("display_on_binary.yaml", "")],
+    "encoder": [("display_on_turn.yaml", ""), ("display_on_binary.yaml", "_push")],
 }
 # catalog family -> catalog fields its package takes as vars
 FAMILY_VARS = {"rotary": ["positions"]}
@@ -95,11 +109,30 @@ def config(name, panel, catalog, out: Path) -> Path:
             f"    file: {rel(FAMILY_PACKAGES[family])}",
             "    vars:",
             f"      id: {eid}",
-            f"      name: {q(str(c['id']))}",
         ]
+        if family in panels.DISPLAYS:
+            shown = next(k for k in panel["components"]
+                         if k["id"] == panels.display_source(c, panel["components"], catalog))
+            lines.append(f"      value: {entity_id(catalog[shown['type']]['family'], shown['id'])}")
+        else:
+            lines.append(f"      name: {q(str(c['id']))}")
         lines += [f"      {'pin' if role == 'pin' else 'pin_' + role}: GPIO{pin}"
                   for role, pin in pins[c["id"]].items()]
         lines += [f"      {field}: {q(entry[field])}" for field in FAMILY_VARS.get(family, [])]
+    displays = [entity_id("display", c["id"]) for c in panel["components"]
+                if catalog[c["type"]]["family"] in panels.DISPLAYS]
+    for c in panel["components"]:
+        family = catalog[c["type"]]["family"]
+        for package, suffix in FAMILY_EVENTS.get(family, []):
+            source = entity_id(family, c["id"]) + suffix
+            for did in displays:
+                lines += [
+                    f"  {did}_on_{source}: !include",
+                    f"    file: {rel(package)}",
+                    "    vars:",
+                    f"      source: {source}",
+                    f"      display: {did}",
+                ]
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text("\n".join(lines) + "\n")
     return out

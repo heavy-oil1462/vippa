@@ -29,6 +29,18 @@ cavity corner, are asserts in cad/lib/panel.scad):
     PIN_ORDER, and a panel that runs out of pins fails
   - a rotary switch's pin is an ADC pin (ADC_PINS): it reads a resistor
     ladder
+  - a display (an LED segment module behind a window routed through the
+    face, ADR-0006) is placed like a component: its bezel lies inside
+    the cavity outline, clear of every other component's keepout and of
+    other bezels; its LED block reaches through the face and stays
+    inside the bezel (face_t from digits height less bezel height to
+    digits height); its body behind the face fits the cavity depth and
+    keeps INTERNAL_CLEARANCE from the cavity wall and from every other
+    body, back nut and internal module, and counts as metal for the
+    antenna keepout
+  - a display shows a knob on the panel ("shows", an encoder or rotary
+    switch id, the first one by default): ESPHome's Zigbee on the H2
+    cannot receive a value yet (docs/CONCEPT.md, Open questions)
 
 Catalog entries with "measured": false are reported as [info]: their
 values are placeholders until someone puts calipers on the real part.
@@ -81,12 +93,26 @@ FAMILY_FIELDS = {
     "module": {"size": list, "finish": str},
 }
 FAMILY_FIELDS["rotary"]["positions"] = int
+# A display sits in the cavity and shows through a window routed through
+# the face (ADR-0006): digits [w, h, height] is the LED block, height
+# above the module's board; window [w, h] the opening in the face; body
+# [w, l, depth] the board and its plug behind the face underside; bezel
+# [w, h, t] the printed frame on the face around the block. Optional
+# model, as for a module, is the bezel's .scad; its envelope is bezel.
+FAMILY_FIELDS["display"] = {"digits": list, "window": list, "body": list, "bezel": list}
+DISPLAYS = {"display"}
+# A bezel overlaps the window edge by at least this all round, to hide
+# the chiselled corners (mm).
+BEZEL_LAP = 2.0
+# Families a display may show (firmware/packages/display.yaml).
+SHOWN_FAMILIES = {"encoder", "rotary"}
 # Optional module field: model, the repo path of the printable .scad the
 # module is (a printed holder); regen_all.py checks its STL bounding box
 # against size. Optional module fields: antenna_end ("+x" or "-x", the end of size[0]
 # the antenna sits at, before rot) and antenna_keepout (mm past it).
 ANTENNA_ENDS = {"+x", "-x"}
 MOUNTED = set(FRONT_FIELDS)
+FACE = MOUNTED | {"display"}  # families placed under "components"
 # Keep-in-sync sweep: FINISHES here and the finish stand-ins in
 # cad/lib/panel.scad (internal_stand_in).
 FINISHES = {"pcb", "aa_holder"}
@@ -94,12 +120,15 @@ FINISHES = {"pcb", "aa_holder"}
 # The record is the id, family, x, y, these fields, the family's two
 # FRONT_FIELDS and the body.
 COMPONENT_RECORD = ["hole_d", "bushing_d", "bushing_len", "nut_af", "nut_t"]
+# Keep-in-sync sweep: the d_* index functions in cad/lib/panel.scad. A
+# display's record is its id, x, y and these fields, flattened.
+DISPLAY_RECORD = ["window", "digits", "body", "bezel"]
 # Board materials the renders know. Keep-in-sync sweep: PBR() in
 # scripts/hero_scene.py. Brass waits for its open question (CONCEPT.md).
 WOODS = {"oak", "walnut"}
 INTERNAL_CLEARANCE = 2.0  # mm around internals, for wires and fingers
 CENTER_TOLERANCE = 1.0  # mm the components' center may sit off the board center
-PARTS = ["panel", "punch", "router", "hero", "build"]
+PARTS = ["panel", "punch", "router", "router_step", "hero", "build"]
 # ESP32-H2 GPIOs a component may use: 0 to 27 without the SPI flash pins
 # (6, 7, 15 to 21), the strapping pins (2, 3, 8, 9, 25) and USB (26, 27),
 # per the ESP32-H2 datasheet and ESPHome's esp32 pin checks.
@@ -118,10 +147,17 @@ PIN_ORDER = [10, 11, 12, 13, 14, 4, 5, 0, 1, 22, 23, 24]
 # family's only pin; an encoder takes its push and its two phases
 # (ADR-0005). In the panel, "pin" is a number for a one pin family and an
 # object of role: GPIO for the others, missing roles assigned.
-FAMILY_PINS = {"encoder": ["push", "a", "b"]}
+FAMILY_PINS = {"encoder": ["push", "a", "b"], "display": ["clk", "dio"]}
 # Families that read their pin as an analog voltage: a rotary switch is a
 # resistor ladder on one ADC pin (firmware/packages/rotary.yaml).
 ADC_FAMILIES = {"rotary"}
+# Families that only drive their pins, a display's CLK and DIO: they take
+# the pins that can neither wake nor read a voltage first, so the wake and
+# ADC pins stay free for controls (ADR-0007).
+OUTPUT_FAMILIES = {"display"}
+OUTPUT_ORDER = ([p for p in PIN_ORDER if p not in WAKE_PINS | ADC_PINS]
+                + [p for p in PIN_ORDER if p in ADC_PINS]
+                + [p for p in PIN_ORDER if p in WAKE_PINS])
 
 
 def is_num(v):
@@ -151,6 +187,8 @@ def load_catalog():
         for field in ("body", "size"):
             if field in FAMILY_FIELDS[family] and not is_triple(entry.get(field)):
                 errors.append(f"catalog {name}: {field} must be [w, l, depth]")
+        if family in DISPLAYS:
+            errors += display_catalog_errors(name, entry)
         if family == "module" and entry.get("finish") not in FINISHES:
             errors.append(f"catalog {name}: finish must be one of {sorted(FINISHES)}")
         if family == "module" and "antenna_end" in entry and not (
@@ -160,6 +198,22 @@ def load_catalog():
         if not str(entry.get("source", "")).strip():
             errors.append(f"catalog {name}: source is empty, say where the values come from")
     return catalog, errors
+
+
+def display_catalog_errors(name, entry):
+    """Problems with a display entry beyond its field types."""
+    digits, window, bezel = entry.get("digits"), entry.get("window"), entry.get("bezel")
+    if not (is_triple(digits) and is_triple(bezel) and isinstance(window, list)
+            and len(window) == 2 and all(map(is_num, window))):
+        return [f"catalog {name}: digits and bezel must be [w, h, height], window [w, h]"]
+    errors = []
+    if not all(window[i] > digits[i] for i in (0, 1)):
+        errors.append(f"catalog {name}: window {window} must be wider and taller than the"
+                      f" digits {digits[:2]}, which pass through it")
+    if not all(bezel[i] >= window[i] + 2 * BEZEL_LAP for i in (0, 1)):
+        errors.append(f"catalog {name}: bezel {bezel[:2]} must cover the window {window}"
+                      f" by {BEZEL_LAP:g} mm all round")
+    return errors
 
 
 def panel_names():
@@ -221,10 +275,25 @@ def back_footprint(comp, entry):
     return (comp["x"] - half_w, comp["y"] - half_l, comp["x"] + half_w, comp["y"] + half_l)
 
 
+def family_of(comp, catalog):
+    return catalog.get(comp.get("type"), {}).get("family")
+
+
+def display_source(comp, comps, catalog):
+    """The id of the knob a display shows: its "shows", else the panel's
+    first encoder or rotary switch; None if there is no such knob."""
+    knobs = [k.get("id") for k in comps if family_of(k, catalog) in SHOWN_FAMILIES]
+    shown = comp.get("shows", knobs[0] if knobs else None)
+    return shown if shown in knobs else None
+
+
+def has_display(panel, catalog):
+    return any(family_of(c, catalog) in DISPLAYS for c in panel.get("components", []))
+
+
 def pin_roles(comp, catalog):
     """The named pins a component takes (FAMILY_PINS), ["pin"] by default."""
-    family = catalog.get(comp.get("type"), {}).get("family")
-    return FAMILY_PINS.get(family, ["pin"])
+    return FAMILY_PINS.get(family_of(comp, catalog), ["pin"])
 
 
 def pin_label(cid, role):
@@ -235,14 +304,16 @@ def assign_pins(panel, catalog):
     """{component id: {role: GPIO}} with the automatic order filled in, and
     a list of problems. Explicit pins win; the rest take PIN_ORDER in
     component order, then role order, skipping pins already used. A
-    family in ADC_FAMILIES takes only ADC_PINS."""
+    family in ADC_FAMILIES takes only ADC_PINS, one in OUTPUT_FAMILIES
+    takes them in OUTPUT_ORDER."""
     comps = panel.get("components", [])
     pins, errors = {}, []
     used = {}
-    wanted = []  # (id, role, adc) still without a pin
+    wanted = []  # (id, role, adc, output) still without a pin
     for c in comps:
         cid, roles = c.get("id"), pin_roles(c, catalog)
-        adc = catalog.get(c.get("type"), {}).get("family") in ADC_FAMILIES
+        family = catalog.get(c.get("type"), {}).get("family")
+        adc, output = family in ADC_FAMILIES, family in OUTPUT_FAMILIES
         given = c.get("pin", {} if len(roles) > 1 else None)
         if len(roles) == 1:
             given = {} if given is None else {"pin": given}
@@ -252,7 +323,7 @@ def assign_pins(panel, catalog):
         pins[cid] = {}
         for role in roles:
             if role not in given:
-                wanted.append((cid, role, adc))
+                wanted.append((cid, role, adc, output))
                 continue
             pin, label = given[role], pin_label(cid, role)
             if not (isinstance(pin, int) and not isinstance(pin, bool)) or pin not in PINS:
@@ -267,8 +338,9 @@ def assign_pins(panel, catalog):
                 used[pin] = label
                 pins[cid][role] = pin
     free = [p for p in PIN_ORDER if p not in used]
-    for cid, role, adc in wanted:
-        fit = [p for p in free if p in ADC_PINS] if adc else free
+    for cid, role, adc, output in wanted:
+        fit = ([p for p in free if p in ADC_PINS] if adc else
+               [p for p in OUTPUT_ORDER if p in free] if output else free)
         if not fit:
             errors.append(f"{pin_label(cid, role)}: no free ESP32-H2"
                           f" {'ADC ' if adc else ''}pin left")
@@ -303,13 +375,17 @@ def validate(panel, catalog):
 
     behind = []  # (id, rect) of everything behind the face
     placed = []
+    displays = []
     for c in comps:
         cid, kind = c.get("id"), c.get("type")
-        if kind not in catalog or catalog[kind]["family"] not in MOUNTED:
+        if kind not in catalog or catalog[kind]["family"] not in FACE:
             errors.append(f"{cid}: {kind!r} is not a face mounted part in catalog/components.json")
             continue
         if not (is_num(c.get("x")) and is_num(c.get("y"))):
             errors.append(f"{cid}: x and y must be numbers")
+            continue
+        if catalog[kind]["family"] in DISPLAYS:
+            displays.append(c)
             continue
         e, x, y = catalog[kind], c["x"], c["y"]
         if face_t > e["max_panel_t"]:
@@ -335,6 +411,50 @@ def validate(panel, catalog):
         behind.append((cid, back_footprint(c, e)))
 
     clear = INTERNAL_CLEARANCE
+    bezels = []  # (id, rect)
+    for c in displays:
+        cid, e, x, y = c["id"], catalog[c["type"]], c["x"], c["y"]
+        dh, bt = e["digits"][2], e["bezel"][2]
+        if not dh - bt <= face_t <= dh:
+            errors.append(f"{cid}: face_t {face_t} must lie from {dh - bt:g} to {dh:g}, so the"
+                          f" digits ({dh:g} tall) reach through the face and stay inside"
+                          f" the {bt:g} mm bezel")
+        bw, bh = e["bezel"][0] / 2, e["bezel"][1] / 2
+        bezel = (x - bw, y - bh, x + bw, y + bh)
+        if not all(in_rounded_rect(px, py, x0, y0, x1, y1, r)
+                   for px in (bezel[0], bezel[2]) for py in (bezel[1], bezel[3])):
+            errors.append(f"{cid}: window at ({x}, {y}) leaves no room for its bezel"
+                          " inside the cavity")
+        for oid, ox, oy, okeep in placed:
+            gap = rect_gap(bezel, (ox, oy, ox, oy))
+            if gap < okeep / 2:
+                errors.append(f"{cid}: bezel {gap:.1f} mm from {oid}, its keepout needs"
+                              f" {okeep / 2:.1f}")
+        for oid, orect in bezels:
+            if rect_gap(bezel, orect) < 0:
+                errors.append(f"{cid}: bezel overlaps the bezel of {oid}")
+        bezels.append((cid, bezel))
+        if depth < e["body"][2]:
+            errors.append(f"{cid}: cavity depth {depth} is shallower than the display"
+                          f" body ({e['body'][2]})")
+        w2, l2 = e["body"][0] / 2, e["body"][1] / 2
+        rect = (x - w2, y - l2, x + w2, y + l2)
+        corners = [(px, py) for px in (rect[0] - clear, rect[2] + clear)
+                   for py in (rect[1] - clear, rect[3] + clear)]
+        if not all(in_rounded_rect(px, py, x0, y0, x1, y1, r) for px, py in corners):
+            errors.append(f"{cid}: display body at ({x}, {y}) is not {clear:g} mm clear"
+                          " of the cavity wall")
+        for oid, orect in behind:
+            gap = rect_gap(rect, orect)
+            if gap < clear:
+                errors.append(f"{cid}: display body {gap:.1f} mm from {oid}, needs {clear:g}")
+        behind.append((cid, rect))
+        if display_source(c, comps, catalog) is None:
+            knobs = [k.get("id") for k in comps if family_of(k, catalog) in SHOWN_FAMILIES]
+            errors.append(f"{cid}: shows {c.get('shows')!r}, but a display shows one of the"
+                          f" panel's knobs {knobs} (encoder or rotary switch); ESPHome's"
+                          " Zigbee on the H2 cannot receive a value to show yet")
+
     antennas = []  # (id, zone)
     for item in internals:
         iid, kind = item.get("id"), item.get("type")
@@ -392,9 +512,12 @@ def scad_value(v):
 def wrapper(name, panel, catalog, out: Path) -> Path:
     """Write the OpenSCAD wrapper for one panel to out (a .scad path)."""
     b, cav = panel["board"], panel["cavity"]
-    records = []
+    records, displays = [], []
     for c in panel["components"]:
         e = catalog[c["type"]]
+        if e["family"] in DISPLAYS:
+            displays.append([c["id"], c["x"], c["y"]] + [v for f in DISPLAY_RECORD for v in e[f]])
+            continue
         records.append([c["id"], e["family"], c["x"], c["y"]]
                        + [e[f] for f in COMPONENT_RECORD + FRONT_FIELDS[e["family"]]]
                        + e["body"])
@@ -424,8 +547,11 @@ def wrapper(name, panel, catalog, out: Path) -> Path:
         "internals = [",
         *[f"    {scad_value(r)}," for r in internals],
         "];",
+        "displays = [",
+        *[f"    {scad_value(r)}," for r in displays],
+        "];",
         "",
-        "panel(part, panel_name, board, cavity, components, internals);",
+        "panel(part, panel_name, board, cavity, components, internals, displays);",
     ]
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text("\n".join(lines) + "\n")
@@ -452,9 +578,11 @@ def main(argv):
             print(f"[info]  {name}: components center {off[0]:+g}, {off[1]:+g} mm (x, y)"
                   " off the board center")
         if not problems:
+            outputs = {c["id"] for c in panel["components"]
+                       if family_of(c, catalog) in OUTPUT_FAMILIES}
             for cid, roles in assign_pins(panel, catalog)[0].items():
                 for role, pin in roles.items():
-                    if pin not in WAKE_PINS:
+                    if pin not in WAKE_PINS and cid not in outputs:
                         print(f"[info]  {name}: {pin_label(cid, role)} on GPIO{pin} cannot wake"
                               f" the ESP32-H2 from deep sleep (wake pins {sorted(WAKE_PINS)})")
         used = panel.get("components", []) + panel.get("internals", [])

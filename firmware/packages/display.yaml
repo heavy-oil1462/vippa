@@ -1,0 +1,72 @@
+# One 4 digit LED segment display on a TM1637 driver, dark until an
+# event lights it (docs/CONCEPT.md, Component families). It shows the
+# value of a knob on the panel for display_time, then goes dark and lets
+# the panel sleep again.
+#
+# Wiring: the module's VCC and GND to the 3.3 V rail, CLK and DIO each
+# to its pin. The module's own pull ups hold both lines high; ESPHome
+# releases them between frames, so no current flows through them. Lit,
+# the module draws 10 to 80 mA (docs/CONCEPT.md, Power); dark, only its
+# driver's standby current, not measured yet (docs/CONCEPT.md, Open
+# questions).
+#
+# What it shows: the sensor named by var value, an encoder's level or a
+# rotary switch's position, right aligned. ESPHome's Zigbee on the
+# ESP32-H2 cannot receive a value from Home Assistant yet, so a knob is
+# the only source (docs/CONCEPT.md, Open questions).
+#
+# What lights it: display_on_turn.yaml (an encoder turns) and
+# display_on_binary.yaml (a toggle flips, a button is pressed), one
+# include per entity of the panel's other controls, run script
+# ${id}_show. A turn or a press while the panel sleeps does not wake it
+# yet, so it lights on events during a wake only.
+#
+# The writer lambda is ESPHome's way of drawing on a tm1637 display
+# (ADR-0002, what ESPHome itself needs); it prints the value while the
+# display is lit and nothing otherwise, which leaves every segment dark.
+#
+# Substitutions:
+#   display_time  how long the display stays lit after the last event.
+#                 Each event restarts it and holds off deep sleep.
+#
+# Vars (one !include per display, from scripts/firmware.py):
+#   id       ESPHome id, a C++ identifier made from the component id
+#   pin_clk  GPIO of CLK, from the panel or the automatic order in
+#   pin_dio  GPIO of DIO   scripts/panels.py
+#   value    ESPHome id of the sensor it shows
+
+substitutions:
+  display_time: 5s
+
+globals:
+  - id: ${id}_lit
+    type: bool
+    initial_value: "false"
+
+display:
+  - platform: tm1637
+    id: ${id}
+    clk_pin: ${pin_clk}
+    dio_pin: ${pin_dio}
+    length: 4
+    intensity: 4
+    update_interval: 200ms  # follows the value while lit
+    lambda: |-
+      if (id(${id}_lit) && id(${value}).has_state())
+        it.printf("%4.0f", id(${value}).state);
+
+script:
+  - id: ${id}_show
+    mode: restart
+    then:
+      - deep_sleep.prevent: panel_sleep
+      - globals.set:
+          id: ${id}_lit
+          value: "true"
+      - component.update: ${id}
+      - delay: ${display_time}
+      - globals.set:
+          id: ${id}_lit
+          value: "false"
+      - component.update: ${id}
+      - deep_sleep.allow: panel_sleep

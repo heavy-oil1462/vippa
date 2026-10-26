@@ -38,7 +38,8 @@ hallway (two toggles in a row), scenes (six miniature toggles in two
 rows of three, a 22 mm board, the ESP32 board turned 90 beside them),
 dimmer (one encoder knob, walnut, a 22 mm board) and living_room (a row
 of a rotary switch, two pushbuttons and an encoder knob, the battery
-below the row and the ESP32 board above it). Start a new panel from
+below the row and the ESP32 board above it) and thermostat (an LED
+segment display above an encoder knob, walnut). Start a new panel from
 the closest one.
 
 ## Layout: start centered
@@ -80,6 +81,15 @@ why in its description.
   never wake the panel (ADR-0005). panels.py prints
   `[info] ... cannot wake` for any pin outside 10 to 14. See the
   firmware skill.
+- A display (led_segment_4d) goes under components with x, y the
+  center of its window, centered with the controls. Its bezel must lie
+  inside the cavity outline and clear every other component's keepout,
+  its body behind the face 2 mm clear of the cavity wall and everything
+  else behind the face, and the face between digits height less bezel
+  t and digits height (3.2 to 7.2 mm). It shows a knob, `"shows":
+  "<id>"` of an encoder or rotary switch, else the first one; a panel
+  with a display needs one. Its pin is an object with some of clk and
+  dio; left out, they come after the wake and ADC pins (ADR-0007).
 - Knobs need room: keepout_d of a knob is the knob plus fingers, so
   knobs sit further apart than toggles, and a pushbutton between two
   knobs saves width.
@@ -112,7 +122,14 @@ why in its description.
 - `pin ... is not an ADC pin`: a rotary switch reads a resistor
   ladder; give it 1, 4 or 5, or leave pin out.
 - `pin must be an object`: an encoder's pin names its roles,
-  `{"push": .., "a": .., "b": ..}`.
+  `{"push": .., "a": .., "b": ..}`, a display's `{"clk": .., "dio": ..}`.
+- `leaves no room for its bezel inside the cavity`, `display body ...
+  not 2 mm clear`: move the display inward or grow the board.
+- `bezel ... its keepout needs`: move the display away from the knob.
+- `face_t ... must lie from`: the display's digits would not reach
+  through the face or would stand out of the bezel; change face_t.
+- `a display shows one of the panel's knobs`: give the panel an encoder
+  or rotary switch, or fix `"shows"`.
 - `holder screws reach ... mm into a ... mm face`: the face is too thin
   for holder_screw_len; use shorter screws or a thicker face.
 - An assert from cad/lib/panel.scad during regen (bit radius, rail

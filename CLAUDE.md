@@ -55,25 +55,30 @@ switch.
 
 - `panels/<name>.json`: one panel. Validated by `scripts/panels.py`,
   including the optional `"pin"` per component (ESP32-H2 GPIO, an
-  object of roles for an encoder, an ADC pin for a rotary switch;
-  missing pins follow `PIN_ORDER`).
+  object of roles for an encoder or a display, an ADC pin for a rotary
+  switch; missing pins follow `PIN_ORDER`).
 - `catalog/components.json`: panel hardware dimensions.
 - `cad/design_params.scad`: tools, printer and fits shared by every
   panel. `check_params.py` fails the build if any file re-declares one
   of its names.
 - `cad/lib/panel.scad`: the board, both templates, the stand-in parts
   and the render scenes, all driven by one panel. Its parts:
-  `panel`, `punch`, `router` (templates in print orientation), `hero`
-  and `build` (render scenes).
+  `panel`, `punch`, `router`, `router_step` (templates in print
+  orientation; the router template's step plate for display windows,
+  ADR-0006), `hero` and `build` (render scenes).
 - `cad/calibration/`: gauges for measured fits.
 - `cad/holders/`: printed parts that sit in the cavity (the AA battery
   holder). A catalog module with a `model` field points at one, and
   regen_all.py fails if the STL's bounding box differs from the catalog
   size.
+- `cad/bezels/`: printed bezels glued on the face around a display
+  window. A catalog display's `model` points at one, and regen_all.py
+  checks its STL against the catalog `bezel` the same way.
 - `firmware/packages/`: hand written ESPHome packages: `h2_base.yaml`
   (chip, deep sleep, `poll_period`), `zigbee.yaml` (the radio) and one
   per component family (`toggle.yaml`, `encoder.yaml`, `rotary.yaml`,
-  `pushbutton.yaml`). `scripts/firmware.py` includes
+  `pushbutton.yaml`, `display.yaml`), and the event packages that light
+  a display (`display_on_turn.yaml`, `display_on_binary.yaml`). `scripts/firmware.py` includes
   them with substitutions into `build/panels/<name>/<name>.yaml`.
 - `docs/adr/`: architecture decision records, index in its README.
 - `scripts/`: Python tools, stdlib only. `hero_scene.py` runs inside
@@ -96,6 +101,9 @@ binaries). OpenSCAD, Blender and ESPHome come from the nixpkgs pin in
   read-only gate (the verify skill and CI).
 - `python3 scripts/panels.py [name]`: validate panel configs and the
   catalog.
+- `python3 scripts/check_panel_rules.py`: a case that fails each
+  display check in panels.py (a gate in regen_all.py). A new check
+  gets its case here.
 - `python3 scripts/firmware.py [--check] [name]`: write (and validate)
   the ESPHome configs only.
 - `python3 scripts/render_hero.py [shot] [--draft]`: photoreal README

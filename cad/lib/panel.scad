@@ -15,6 +15,7 @@
 
 include <../design_params.scad>
 use <../holders/battery_2aa_holder.scad>
+use <../bezels/led_segment_4d_bezel.scad>
 
 // Material color tags. scripts/render_hero.py maps each to a material and
 // fails on any other color. Keep-in-sync sweep: these, MATERIALS in
@@ -27,6 +28,7 @@ PCB = "#1E5C3A";
 CELL = "#2E4A9E";
 ALUMINIUM = "#A8A9AD";
 BAKELITE = "#1A1210";
+LED = "#E8302A";
 
 // Component record, written by scripts/panels.py. Keep-in-sync sweep:
 // these indices, COMPONENT_RECORD and FRONT_FIELDS in panels.py.
@@ -57,6 +59,17 @@ function i_x(m) = m[2];
 function i_y(m) = m[3];
 function i_size(m) = [m[4], m[5], m[6]];
 
+// Display record (an LED segment module behind a window in the face),
+// written by scripts/panels.py. Keep-in-sync sweep: these indices and
+// DISPLAY_RECORD in panels.py.
+function d_id(d) = d[0];
+function d_x(d) = d[1];
+function d_y(d) = d[2];
+function d_window(d) = [d[3], d[4]];
+function d_digits(d) = [d[5], d[6], d[7]];   // LED block, height above its board
+function d_body(d) = [d[8], d[9], d[10]];    // behind the face underside
+function d_bezel(d) = [d[11], d[12], d[13]];
+
 // board = [w, h, t, chamfer], cavity = [face_t, rim, r]
 
 module rounded_rect(size, r) {
@@ -74,7 +87,9 @@ module board_blank(board) {
         cube([w, h, t]);
 }
 
-module board_wood(board, cavity, components) {
+// The board with its cavity, holes and display windows. A window is
+// shown as finished: routed through, its corners chiselled square.
+module board_wood(board, cavity, components, displays = []) {
     t = board[2]; face_t = cavity[0]; rim = cavity[1];
     color(OAK) difference() {
         board_blank(board);
@@ -83,6 +98,9 @@ module board_wood(board, cavity, components) {
                 rounded_rect([board[0] - 2 * rim, board[1] - 2 * rim], cavity[2]);
         for (c = components)
             translate([c_x(c), c_y(c), -eps]) cylinder(d = c_hole_d(c), h = t + 2 * eps);
+        for (d = displays)
+            translate([d_x(d) - d_window(d)[0] / 2, d_y(d) - d_window(d)[1] / 2, -eps])
+                cube([d_window(d)[0], d_window(d)[1], t + 2 * eps]);
     }
 }
 
@@ -179,6 +197,53 @@ module pushbutton_stand_in(c, t, face_t) {
     }
 }
 
+// Segments a to g of a seven segment digit, 1 lit: 0 to 9.
+SEGMENTS = [[1, 1, 1, 1, 1, 1, 0], [0, 1, 1, 0, 0, 0, 0], [1, 1, 0, 1, 1, 0, 1],
+            [1, 1, 1, 1, 0, 0, 1], [0, 1, 1, 0, 0, 1, 1], [1, 0, 1, 1, 0, 1, 1],
+            [1, 0, 1, 1, 1, 1, 1], [1, 1, 1, 0, 0, 0, 0], [1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 0, 1, 1]];
+
+// The lit segments of one digit n (0 to 9) of height h, centered, slanted
+// like a real display.
+module seven_segment(n, h) {
+    w = 0.5 * h; s = 0.13 * h; g = 0.03 * h;
+    on = SEGMENTS[n];
+    multmatrix([[1, tan(8), 0, 0], [0, 1, 0, 0], [0, 0, 1, 0]]) {
+        for (i = [0, 3, 6]) if (on[i] == 1)  // a, d, g
+            translate([-w / 2 + s / 2 + g, (i == 0 ? h / 2 : i == 3 ? -h / 2 : 0) - s / 2])
+                square([w - s - 2 * g, s]);
+        for (i = [1, 2, 4, 5]) if (on[i] == 1) {  // b, c, e, f
+            sx = (i == 1 || i == 2) ? 1 : -1;
+            top = (i == 1 || i == 5);
+            translate([sx * (w / 2 - s / 2) - s / 2, top ? g : -h / 2 + g])
+                square([s, h / 2 - 2 * g]);
+        }
+    }
+}
+
+// A display as mounted: the module's board against the cavity floor
+// behind the window, its LED block reaching through the window, the
+// printed bezel on the face around it. The stand-in reads 50, the knob
+// at half, lit as it is for display_time after an event.
+module display_stand_in(d, t, face_t) {
+    floor_z = t - face_t;
+    digits = d_digits(d); body = d_body(d); bezel = d_bezel(d);
+    reading = [-1, -1, 5, 0];  // -1 dark
+    translate([d_x(d), d_y(d), 0]) {
+        color(PCB) translate([-body[0] / 2, -body[1] / 2, floor_z - 1.6]) cube([body[0], body[1], 1.6]);
+        // the driver chip, and the right angle header and its plug at one end
+        color(BLACK) {
+            translate([-4, -4, floor_z - 3]) cube([8, 8, 1.4 + eps]);
+            translate([-body[0] / 2 + 1, -5, floor_z - body[2]]) cube([4, 10, body[2] - 1.6 + eps]);
+        }
+        color(BAKELITE) translate([-digits[0] / 2, -digits[1] / 2, floor_z]) cube(digits);
+        color(LED) for (i = [0 : 3]) if (reading[i] >= 0)
+            translate([(i - 1.5) * digits[0] / 4, 0, floor_z + digits[2] - 0.1])
+                linear_extrude(0.15) seven_segment(reading[i], 0.65 * digits[1]);
+        color(BLACK) translate([0, 0, t]) display_bezel([bezel[0], bezel[1]], digits, bezel[2]);
+    }
+}
+
 // An internal module lying on the cavity floor (the underside of the
 // face), reaching toward the open back. Only the envelope is a catalog
 // value; the detail inside it is for the renders. Keep-in-sync sweep for
@@ -209,8 +274,8 @@ module internal_stand_in(m, floor_z) {
 // The finished panel. Toggles alternate up and down so a render shows
 // both lever positions. Keep-in-sync sweep for families: FRONT_FIELDS in
 // panels.py.
-module finished_panel(board, cavity, components, internals) {
-    board_wood(board, cavity, components);
+module finished_panel(board, cavity, components, internals, displays = []) {
+    board_wood(board, cavity, components, displays);
     for (i = [0 : len(components) - 1]) {
         c = components[i]; t = board[2]; face_t = cavity[0];
         if (c_family(c) == "toggle")
@@ -229,6 +294,8 @@ module finished_panel(board, cavity, components, internals) {
                cavity[0], " mm face, more than face_t - face_skin"));
     for (m = internals)
         internal_stand_in(m, board[2] - cavity[0]);
+    for (d = displays)
+        display_stand_in(d, board[2], cavity[0]);
 }
 
 // Fence groove along the fence root, a diamond centered on the corner
@@ -257,7 +324,10 @@ module label(txt, flip = false) {
 }
 
 // Punch template where it sits: on the front face.
-module punch_template_in_place(name, board, cavity, components) {
+// A display window's corners get a punch bore each: the window is routed
+// with round corners (the bit radius) and squared to the four marks
+// with a chisel. Its size is engraved between them.
+module punch_template_in_place(name, board, cavity, components, displays = []) {
     w = board[0]; h = board[1]; t = board[2];
     fh = min(fence_h, t);
     top = t + punch_plate_t;
@@ -274,6 +344,13 @@ module punch_template_in_place(name, board, cavity, components) {
             // drill size for this hole, under the bore
             translate([c_x(c), c_y(c) - punch_d / 2 - 1.5 - label_size / 2, top - label_depth])
                 label(str(c_hole_d(c)));
+        }
+        for (d = displays) {
+            win = d_window(d);
+            for (sx = [-1, 1], sy = [-1, 1])
+                translate([d_x(d) + sx * win[0] / 2, d_y(d) + sy * win[1] / 2, t - eps])
+                    cylinder(d = punch_d + punch_clearance, h = punch_plate_t + 2 * eps);
+            translate([d_x(d), d_y(d), top - label_depth]) label(str(win[0], " x ", win[1]));
         }
         translate([w / 2, cavity[1] / 2, top - label_depth]) label(str(name, "  FRONT"));
         root_grooves(board, t);
@@ -315,33 +392,82 @@ module router_template_in_place(name, board, cavity) {
     }
 }
 
-module punch_template_print(name, board, cavity, components) {
+// The router template's second step, for the display windows (ADR-0006):
+// a plate that drops into the router template's opening once the cavity
+// is routed, resting on the band of back face the opening leaves around
+// the cavity, flush with the template so the router base rides both.
+// The guide bushing runs inside a window opening, the window grown by
+// the bushing to bit offset, and the bit goes on through the face. The
+// window comes out with the bit radius in its corners; the punch marks
+// show where to chisel them square.
+module router_step_in_place(name, board, cavity, displays) {
+    w = board[0]; h = board[1]; t = board[2];
+    rim = cavity[1]; r = cavity[2];
+    off = (copy_ring_od - bit_d) / 2;
+    plate = [w - 2 * rim + 2 * off - 2 * slip_fit, h - 2 * rim + 2 * off - 2 * slip_fit];
+    // the window's corner radius is the bit's, the tightest it can cut, so
+    // the opening's is the guide bushing's
+    win_r = bit_d / 2;
+    assert(len(displays) > 0, "router_step: the panel has no display");
+    for (d = displays) {
+        win = d_window(d);
+        rail = min(d_x(d) - win[0] / 2 - rim, w - rim - d_x(d) - win[0] / 2,
+                   d_y(d) - win[1] / 2 - rim, h - rim - d_y(d) - win[1] / 2);
+        assert(min(win) >= bit_d, str(d_id(d), ": window ", win[0], " x ", win[1],
+                                      " is narrower than the bit ", bit_d));
+        assert(rail >= rail_min, str(d_id(d), ": step plate rail ", rail,
+                                     " beside the window is narrower than rail_min"));
+    }
+    color(PRINTED) difference() {
+        translate([rim - off + slip_fit, rim - off + slip_fit, -router_plate_t])
+            linear_extrude(router_plate_t) rounded_rect(plate, r + off - slip_fit);
+        for (d = displays) {
+            win = d_window(d);
+            translate([d_x(d) - win[0] / 2 - off, d_y(d) - win[1] / 2 - off, -router_plate_t - eps])
+                linear_extrude(router_plate_t + 2 * eps)
+                    rounded_rect([win[0] + 2 * off, win[1] + 2 * off], win_r + off);
+        }
+        translate([w / 2, rim - off / 2, -router_plate_t - eps])
+            label(str(name, "  STEP  through  depth ", t), flip = true);
+    }
+}
+
+module punch_template_print(name, board, cavity, components, displays = []) {
     translate([0, 0, board[2] + punch_plate_t]) rotate([180, 0, 0])
-        punch_template_in_place(name, board, cavity, components);
+        punch_template_in_place(name, board, cavity, components, displays);
+}
+
+module router_step_print(name, board, cavity, displays) {
+    translate([0, 0, router_plate_t]) router_step_in_place(name, board, cavity, displays);
 }
 
 module router_template_print(name, board, cavity) {
     translate([0, 0, router_plate_t]) router_template_in_place(name, board, cavity);
 }
 
-// part: panel (finished board), punch, router (templates in print
-// orientation), hero (the panel standing, front toward -y), build (the
-// board with its punch template seated, the router template beside it)
-module panel(part, name, board, cavity, components, internals = []) {
+// part: panel (finished board), punch, router, router_step (templates in
+// print orientation; router_step only for a panel with a display), hero
+// (the panel standing, front toward -y), build (the board with its punch
+// template seated, the router template beside it, its step plate in it)
+module panel(part, name, board, cavity, components, internals = [], displays = []) {
     if (part == "panel")
-        finished_panel(board, cavity, components, internals);
+        finished_panel(board, cavity, components, internals, displays);
     else if (part == "punch")
-        punch_template_print(name, board, cavity, components);
+        punch_template_print(name, board, cavity, components, displays);
     else if (part == "router")
         router_template_print(name, board, cavity);
+    else if (part == "router_step")
+        router_step_print(name, board, cavity, displays);
     else if (part == "hero")
         rotate([90, 0, 0]) translate([0, 0, -board[2]])
-            finished_panel(board, cavity, components, internals);
+            finished_panel(board, cavity, components, internals, displays);
     else if (part == "build") {
-        board_wood(board, cavity, components);
-        punch_template_in_place(name, board, cavity, components);
-        translate([board[0] + fence_t + router_margin + 40, 0, 0])
+        board_wood(board, cavity, components, displays);
+        punch_template_in_place(name, board, cavity, components, displays);
+        translate([board[0] + fence_t + router_margin + 40, 0, 0]) {
             router_template_print(name, board, cavity);
+            if (len(displays) > 0) router_step_print(name, board, cavity, displays);
+        }
     } else
         assert(false, str("unknown part ", part));
 }

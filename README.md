@@ -6,15 +6,15 @@
 the hero-render skill); regenerate, never edit.*
 
 Rugged Home Assistant controls made from a solid piece of hardwood or
-brass, with real retro toggle switches, rotary knobs, pilot lamps and
-analog meters set into it. An ESP32-H2 running ESPHome and two AA cells
+brass, with real retro toggle switches, rotary knobs, pushbuttons and
+LED segment readouts set into it. An ESP32-H2 running ESPHome and two AA cells
 sit in a cavity behind the face; no cable. It talks Zigbee, so a flip
 reaches Home Assistant at once instead of after a wifi reconnect. Open hardware and firmware.
 
 Status: the first panel, an oak slab with three toggles, is designed
-but not yet built. Toggles, encoder knobs, rotary switches and
-pushbuttons are in the catalog, all with placeholder dimensions until
-measured on real parts. The ESPHome firmware is generated from the
+but not yet built. Toggles, encoder knobs, rotary switches,
+pushbuttons and an LED segment display are in the catalog, all with
+placeholder dimensions until measured on real parts. The ESPHome firmware is generated from the
 panel and validated, but not yet flashed on a real ESP32-H2.
 
 ## Made with hand tools
@@ -67,7 +67,17 @@ A component may name its ESP32-H2 GPIO with `"pin"`; without one it
 gets the next free pin in a fixed order (`PIN_ORDER` in
 `scripts/panels.py`), so wire the controls in that order. An encoder
 takes three pins (push, A, B), and a rotary switch reads a resistor
-ladder on one ADC pin (docs/adr/0005-pins-for-knobs.md).
+ladder on one ADC pin (docs/adr/0005-pins-for-knobs.md). A display
+takes two (CLK, DIO), after the pins that can wake the panel
+(docs/adr/0007-pins-for-displays.md).
+
+A display (`led_segment_4d`) is placed under `components` like a knob.
+It shows through a window routed through the face from the back, with
+a step plate dropped into the router template, and a printed bezel
+from `cad/bezels/` on the face around it
+(docs/adr/0006-display-window-routed-through.md). It shows the value of
+a knob on the panel, `"shows"` or the first one, lit for a few seconds
+after a turn, a press or a flip.
 
 Your tools go in `cad/design_params.scad`: center punch, guide bushing,
 router bit and print bed.
@@ -109,6 +119,16 @@ checks allow around them.
 
   ![The living_room panel](media/panels/living_room.png)
 
+- `thermostat`: a set point with a readout. Walnut, 170 x 128 x 22 mm,
+  an LED segment display above an encoder knob; turn the knob and the
+  display shows its value for a few seconds, then goes dark. From the
+  back: the display module behind its window, the ESP32 board beside
+  it and the battery below the knob.
+
+  ![The thermostat panel](media/panels/thermostat.png)
+
+  ![The back of the thermostat panel](media/panels/thermostat_back.png)
+
 The pictures come from `python3 scripts/render_hero.py --panels`.
 
 ## Calibration first
@@ -128,8 +148,9 @@ python3 scripts/render_hero.py         # the README images (Blender, minutes)
 python3 scripts/render_hero.py --panels # one picture per example panel
 ```
 
-`build/panels/<name>/` gets `punch_template.stl`, `router_template.stl`,
-quick preview renders, `<name>.scad`, which opens the panel in
+`build/panels/<name>/` gets `punch_template.stl`, `router_template.stl`
+(and `router_step.stl` on a panel with a display), quick preview
+renders, `<name>.scad`, which opens the panel in
 OpenSCAD, and `<name>.yaml`, the panel's ESPHome config (see the
 firmware skill). OpenSCAD, Blender and ESPHome come from nix; without
 nix, point `OPENSCAD`, `BLENDER` and `ESPHOME` at your own binaries. The scripts are standard

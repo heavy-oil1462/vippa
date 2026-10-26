@@ -1,0 +1,15 @@
+# Lights a display when an encoder turns, and keeps it lit while the
+# knob keeps turning. A turn is a detent, not the level the encoder
+# publishes at every wake, so a wake alone does not light it. See
+# display.yaml.
+#
+# Vars (one !include per encoder and display, from scripts/firmware.py):
+#   source   ESPHome id of the encoder's sensor
+#   display  ESPHome id of the display
+
+sensor:
+  - id: !extend ${source}
+    on_clockwise:
+      - script.execute: ${display}_show
+    on_anticlockwise:
+      - script.execute: ${display}_show
