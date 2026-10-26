@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed
+Accepted (the supervisor, in review of #21)
 
 ## Context
 
