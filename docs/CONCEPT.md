@@ -11,12 +11,24 @@ Each family becomes catalog entries (catalog/components.json) with
 measured or datasheet values.
 
 - Toggle switches: full size (12 mm, 15/32 in bushing) and miniature
-  (6 mm, 1/4 in bushing), bat handles. On/off and momentary. The first
-  family in the catalog.
+  (6 mm, 1/4 in bushing), bat handles. On/off and momentary. In the
+  catalog: `toggle_12mm` and `toggle_6mm` (family `toggle`).
 - Rotary controls: incremental encoders with push (for dimmers and
   volume) and multi-position rotary switches (scene selectors), with
-  machined or bakelite knobs.
-- Pushbuttons: momentary, metal, optionally illuminated.
+  machined or bakelite knobs. In the catalog: `encoder_knob` (family
+  `encoder`, M7 bushing, knurled aluminium knob) and `rotary_switch`
+  (family `rotary`, 1 pole 6 positions, 3/8 in bushing, bakelite
+  pointer knob).
+- Pushbuttons: momentary, metal, optionally illuminated. In the
+  catalog: `pushbutton_16mm` (family `pushbutton`, 16 mm threaded
+  body, flat head).
+
+Every catalog value is a placeholder from a typical datasheet
+(`measured: false`) until calipers confirm it. The face mounted
+families all mount the toggle's way, through a round hole: a threaded
+bushing, a nut behind the face and the body behind that, and in front
+a second nut, or for a pushbutton its head. So the same checks and the
+same punch template cover them all.
 - Pilot lamps: bezel indicators, LED inside.
 - Analog meters: moving-coil panel meters driven by ESP32 PWM, with
   printed custom scales (temperature, power, anything HA knows).
@@ -159,8 +171,19 @@ firmware/packages/: h2_base.yaml (the chip and deep sleep), zigbee.yaml
 - Each toggle is a Zigbee binary input named after its component id,
   reported on every change (`report: force`), internal pull resistors
   off for the ON-ON wiring above.
+- A pushbutton is a binary input too, normally open to ground on the
+  internal pull up: no current until it is pressed.
+- An encoder is an analog input, a level from 0 to 100 percent in 20
+  detents, kept in flash across deep sleep, and its push a binary input
+  `<id>_push`. Its phases sit on pull ups to ground, so it must be a
+  part whose contacts are both open at every detent.
+- A rotary switch is an analog input, its position from 1, read as a
+  resistor ladder on one ADC pin (ADR-0005), about 1 uA.
+- Home Assistant turns the numbers into brightness, volume or a scene
+  with an automation; nothing on the panel knows the lights.
 - Pins come from the panel's `"pin"` or a fixed order in
-  scripts/panels.py, wake capable pins first (ADR-0004).
+  scripts/panels.py, wake capable pins first (ADR-0004). An encoder
+  takes three, its push first (ADR-0005).
 - The panel deep sleeps, wakes every `poll_period`, rejoins its parent,
   reports and sleeps again after `awake_time`.
 
@@ -185,13 +208,29 @@ firmware/packages/: h2_base.yaml (the chip and deep sleep), zigbee.yaml
   - No trigger for an acknowledged report: the panel sleeps after
     `awake_time` instead of as soon as the parent acknowledges.
   - Only five H2 GPIOs can wake it (10 to 14), so at most five
-    toggles per panel can wake the panel once per pin wake works.
+    toggles per panel can wake the panel once per pin wake works. An
+    encoder takes three of them.
+  - Knobs reach Home Assistant only as Zigbee analog inputs: ESPHome on
+    the ESP32 exposes binary sensors and sensors, not switches, numbers,
+    the level control cluster or a multistate input. So an encoder
+    cannot be bound to a light as a dimmer, and a scene number needs an
+    automation in Home Assistant to mean anything.
+  - An encoder counts only while the panel is awake. A turn while it
+    sleeps does not wake it (its phases would need per pin wake levels
+    too, see above) and the detents turned before the next wake are
+    lost. Pushing the knob first, once a push can wake the panel, is
+    the interim way to use it.
+  - A rotary switch on the ADC cannot wake the panel at all (the ADC
+    pins are not wake pins): a new position is reported at the next
+    wake. On living_room an apply pushbutton beside the selector wakes
+    the panel and carries the position with it.
 - Charging: none for alkaline cells, or a board with a charger for
   rechargeable cells.
 - Back of the panel: a cover plate in a rebate, or a screwed panel.
   Needs a second, shallower router template step.
-- Anti-rotation for toggles: a second small hole for the lock washer tab,
-  or rely on the nut torque.
+- Anti-rotation for toggles and knobs: a second small hole for the lock
+  washer or body tab, or rely on the nut torque. A knob is turned
+  against the nut every time it is used, so it matters more there.
 - Mounting: wall (keyhole, French cleat) and desk (angled base).
 - The ESP32 board: generic placeholder for now. Holding it in the
   cavity: printed tray screwed like the battery holder.

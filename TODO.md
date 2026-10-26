@@ -38,9 +38,13 @@
 - [ ] Measure the real sleep and wake current, update the budget
 - [ ] Tray for the ESP32 board
 - [ ] Back cover and its rebate
-- [ ] Toggle anti-rotation
+- [ ] Toggle and knob anti-rotation
 - [ ] Mounting (wall and desk)
-- [ ] More families: encoders, rotary switches, pilot lamps, meters
+- [x] More families: encoders, rotary switches and pushbuttons
+      (placeholder values), stand-ins, firmware packages and the example
+      panels dimmer and living_room
+- [ ] Measure the real encoders, rotary switches, knobs and pushbuttons
+- [ ] More families: pilot lamps, meters (need a design decision first)
 - [ ] Bill of materials generated from the panel and catalog
 
 ## Phase 3: firmware

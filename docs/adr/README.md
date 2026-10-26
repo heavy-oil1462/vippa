@@ -23,3 +23,4 @@ Add every new ADR to the index below in the same change.
 | [0002](0002-firmware-is-esphome.md) | Firmware is ESPHome, built with esphome-skills | Accepted |
 | [0003](0003-zigbee-is-the-first-radio.md) | Zigbee is the first radio | Accepted |
 | [0004](0004-pins-on-the-h2.md) | Pins on the ESP32-H2 | Accepted |
+| [0005](0005-pins-for-knobs.md) | Pins for knobs: named pins and a resistor ladder | Proposed |
