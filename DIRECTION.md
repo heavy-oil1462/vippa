@@ -18,7 +18,8 @@ follows. The concept and its decisions are in docs/CONCEPT.md.
 
 - Real panel hardware only. No touchscreens, and no control whose only
   feedback is a LED or a screen. A small non-touch display beside the
-  controls is fine as an output (owner, 2026-10-26; which kind is #19).
+  controls is fine as an output: LED segments, lit only for a while
+  after an event so the panel stays on AA cells (owner, #19).
 - A panel is its JSON file. Nothing about a panel is typed into a
   .scad; everything a panel needs is derived from `panels/<name>.json`
   and the catalog.
@@ -79,10 +80,10 @@ Individual decisions and their reasons go into ADRs in docs/adr.
 ## Priorities, in order
 
 1. Examples beyond toggles: knobs (encoders, rotary switches),
-   pushbuttons, then small screens and meters, each as a family in the
+   pushbuttons, then LED segment displays, each as a family in the
    catalog and an example panel with a README picture (owner on the
-   board, 2026-10-26; #18, screens and meters wait on #19). The first
-   example panels are done (#17).
+   board, 2026-10-26; #18, #20). The first example panels are done
+   (#17).
 2. Firmware started: an ESPHome config generated from every panel for a
    Zigbee sleepy end device on the ESP32-H2, validated in the gate
    (owner, 2026-10-26; #12). Home Assistant as the target, ESPHome and
@@ -100,6 +101,9 @@ Individual decisions and their reasons go into ADRs in docs/adr.
 7. Bill of materials generated from the panel and catalog.
 
 ## Not now
+
+- Moving-coil meters: they need power the whole time they show a
+  value (owner, #19). Readouts are LED segment displays instead.
 
 - Wifi, Thread or Matter on the panel; Zigbee is the first radio
   (ADR-0003).
