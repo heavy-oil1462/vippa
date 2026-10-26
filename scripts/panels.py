@@ -24,16 +24,19 @@ cavity corner, are asserts in cad/lib/panel.scad):
     end free of metal (every component's body and nut, every other
     module), since metal there detunes the antenna; wood does not count
   - a component's optional "pin" is a usable ESP32-H2 GPIO (PINS), used
-    once; components without one get the next free pin in PIN_ORDER,
-    and a panel that runs out of pins fails
+    once, or for a family with several pins (FAMILY_PINS, an encoder)
+    an object of them by role; pins not given take the next free one in
+    PIN_ORDER, and a panel that runs out of pins fails
+  - a rotary switch's pin is an ADC pin (ADC_PINS): it reads a resistor
+    ladder
 
 Catalog entries with "measured": false are reported as [info]: their
 values are placeholders until someone puts calipers on the real part.
 So is a panel whose components are not centered on the face: the
 bounding box center of their positions more than CENTER_TOLERANCE off
 the board center. Controls are centered unless the panel says why not,
-so this is not a failure, only kept visible. A toggle on a pin that
-cannot wake the H2 from deep sleep (outside WAKE_PINS) is [info] too.
+so this is not a failure, only kept visible. Any pin that cannot
+wake the H2 from deep sleep (outside WAKE_PINS) is [info] too.
 
 Usage:
     scripts/panels.py              # validate every panel, the gate
@@ -53,28 +56,44 @@ LIB = ROOT / "cad" / "lib" / "panel.scad"
 PARAMS = ROOT / "cad" / "design_params.scad"
 
 COMMON_FIELDS = {"description": str, "family": str, "measured": bool, "source": str}
-# family -> fields it needs beyond COMMON_FIELDS. "toggle" mounts through
-# the face; "module" (boards, batteries) sits in the cavity.
+# Every family that mounts through the face does it the toggle's way: a
+# round hole, a threaded bushing (a pushbutton's threaded body) clamped by
+# a nut behind the face, and the body behind that nut. In front sits a
+# second nut (toggle, encoder, rotary) or the pushbutton's head.
+MOUNT_FIELDS = {
+    "hole_d": float, "bushing_d": float, "bushing_len": float,
+    "max_panel_t": float, "nut_af": float, "nut_t": float,
+    "body": list, "keepout_d": float,
+}
+# Mounted family -> the two fields its stand-in shows in front of the
+# face, in record order: the lever, the knob or the pushbutton's head.
+FRONT_FIELDS = {
+    "toggle": ["lever_d", "lever_len"],
+    "encoder": ["knob_d", "knob_h"],
+    "rotary": ["knob_d", "knob_h"],
+    "pushbutton": ["cap_d", "cap_h"],
+}
+# family -> fields it needs beyond COMMON_FIELDS. The FRONT_FIELDS
+# families mount through the face; "module" (boards, batteries) sits in
+# the cavity. A rotary switch also has its number of positions.
 FAMILY_FIELDS = {
-    "toggle": {
-        "hole_d": float, "bushing_d": float, "bushing_len": float,
-        "max_panel_t": float, "nut_af": float, "nut_t": float,
-        "lever_d": float, "lever_len": float, "body": list, "keepout_d": float,
-    },
+    **{f: {**MOUNT_FIELDS, **dict.fromkeys(front, float)} for f, front in FRONT_FIELDS.items()},
     "module": {"size": list, "finish": str},
 }
+FAMILY_FIELDS["rotary"]["positions"] = int
 # Optional module field: model, the repo path of the printable .scad the
 # module is (a printed holder); regen_all.py checks its STL bounding box
 # against size. Optional module fields: antenna_end ("+x" or "-x", the end of size[0]
 # the antenna sits at, before rot) and antenna_keepout (mm past it).
 ANTENNA_ENDS = {"+x", "-x"}
-MOUNTED = {"toggle"}
+MOUNTED = set(FRONT_FIELDS)
 # Keep-in-sync sweep: FINISHES here and the finish stand-ins in
 # cad/lib/panel.scad (internal_stand_in).
 FINISHES = {"pcb", "aa_holder"}
 # Keep-in-sync sweep: the c_* and i_* index functions in cad/lib/panel.scad.
-COMPONENT_RECORD = ["hole_d", "bushing_d", "bushing_len", "nut_af", "nut_t",
-                    "lever_d", "lever_len"]
+# The record is the id, family, x, y, these fields, the family's two
+# FRONT_FIELDS and the body.
+COMPONENT_RECORD = ["hole_d", "bushing_d", "bushing_len", "nut_af", "nut_t"]
 # Board materials the renders know. Keep-in-sync sweep: PBR() in
 # scripts/hero_scene.py. Brass waits for its open question (CONCEPT.md).
 WOODS = {"oak", "walnut"}
@@ -87,11 +106,22 @@ PARTS = ["panel", "punch", "router", "hero", "build"]
 PINS = {0, 1, 4, 5, 10, 11, 12, 13, 14, 22, 23, 24}
 # The pins ESPHome can wake the H2 from deep sleep with (LP GPIO 7 to 14).
 WAKE_PINS = {10, 11, 12, 13, 14}
+# The ADC1 pins among PINS (ADC1 is GPIO1 to 5 on the H2). None can wake.
+ADC_PINS = {1, 4, 5}
 # Components without a "pin" take the next free one in this order, wake
 # capable pins first, then the rest. 13 and 14 double as the 32 kHz
 # crystal pins and 23, 24 as UART0, so they come last in their groups.
 # Changing the order moves the wiring of every panel that relies on it.
 PIN_ORDER = [10, 11, 12, 13, 14, 4, 5, 0, 1, 22, 23, 24]
+# Family -> the pins a component of it takes, named, in the order they are
+# assigned, so the one that should wake the panel comes first. "pin" is a
+# family's only pin; an encoder takes its push and its two phases
+# (ADR-0005). In the panel, "pin" is a number for a one pin family and an
+# object of role: GPIO for the others, missing roles assigned.
+FAMILY_PINS = {"encoder": ["push", "a", "b"]}
+# Families that read their pin as an analog voltage: a rotary switch is a
+# resistor ladder on one ADC pin (firmware/packages/rotary.yaml).
+ADC_FAMILIES = {"rotary"}
 
 
 def is_num(v):
@@ -113,7 +143,9 @@ def load_catalog():
             continue
         for field, kind in {**COMMON_FIELDS, **FAMILY_FIELDS[family]}.items():
             v = entry.get(field)
-            ok = is_num(v) if kind is float else isinstance(v, kind)
+            ok = (is_num(v) if kind is float else
+                  isinstance(v, int) and not isinstance(v, bool) and v >= 2 if kind is int else
+                  isinstance(v, kind))
             if not ok:
                 errors.append(f"catalog {name}: '{field}' missing or not {kind.__name__}")
         for field in ("body", "size"):
@@ -189,34 +221,60 @@ def back_footprint(comp, entry):
     return (comp["x"] - half_w, comp["y"] - half_l, comp["x"] + half_w, comp["y"] + half_l)
 
 
-def assign_pins(panel):
-    """{component id: GPIO} with the automatic order filled in, and a list
-    of problems. Explicit pins win; the rest take PIN_ORDER in component
-    order, skipping pins already used."""
+def pin_roles(comp, catalog):
+    """The named pins a component takes (FAMILY_PINS), ["pin"] by default."""
+    family = catalog.get(comp.get("type"), {}).get("family")
+    return FAMILY_PINS.get(family, ["pin"])
+
+
+def pin_label(cid, role):
+    return str(cid) if role == "pin" else f"{cid} {role}"
+
+
+def assign_pins(panel, catalog):
+    """{component id: {role: GPIO}} with the automatic order filled in, and
+    a list of problems. Explicit pins win; the rest take PIN_ORDER in
+    component order, then role order, skipping pins already used. A
+    family in ADC_FAMILIES takes only ADC_PINS."""
     comps = panel.get("components", [])
     pins, errors = {}, []
     used = {}
+    wanted = []  # (id, role, adc) still without a pin
     for c in comps:
-        if "pin" not in c:
-            continue
-        pin = c["pin"]
-        if not (isinstance(pin, int) and not isinstance(pin, bool)) or pin not in PINS:
-            errors.append(f"{c.get('id')}: pin {pin!r} is not a usable ESP32-H2 GPIO,"
-                          f" use one of {sorted(PINS)}")
-            continue
-        if pin in used:
-            errors.append(f"{c.get('id')}: pin {pin} is already used by {used[pin]}")
-            continue
-        used[pin] = c.get("id")
-        pins[c.get("id")] = pin
+        cid, roles = c.get("id"), pin_roles(c, catalog)
+        adc = catalog.get(c.get("type"), {}).get("family") in ADC_FAMILIES
+        given = c.get("pin", {} if len(roles) > 1 else None)
+        if len(roles) == 1:
+            given = {} if given is None else {"pin": given}
+        elif not (isinstance(given, dict) and set(given) <= set(roles)):
+            errors.append(f"{cid}: pin must be an object with some of {roles}, GPIO each")
+            given = {}
+        pins[cid] = {}
+        for role in roles:
+            if role not in given:
+                wanted.append((cid, role, adc))
+                continue
+            pin, label = given[role], pin_label(cid, role)
+            if not (isinstance(pin, int) and not isinstance(pin, bool)) or pin not in PINS:
+                errors.append(f"{label}: pin {pin!r} is not a usable ESP32-H2 GPIO,"
+                              f" use one of {sorted(PINS)}")
+            elif adc and pin not in ADC_PINS:
+                errors.append(f"{label}: pin {pin} is not an ADC pin, a rotary switch"
+                              f" reads its resistor ladder on one of {sorted(ADC_PINS)}")
+            elif pin in used:
+                errors.append(f"{label}: pin {pin} is already used by {used[pin]}")
+            else:
+                used[pin] = label
+                pins[cid][role] = pin
     free = [p for p in PIN_ORDER if p not in used]
-    for c in comps:
-        if "pin" in c:
+    for cid, role, adc in wanted:
+        fit = [p for p in free if p in ADC_PINS] if adc else free
+        if not fit:
+            errors.append(f"{pin_label(cid, role)}: no free ESP32-H2"
+                          f" {'ADC ' if adc else ''}pin left")
             continue
-        if not free:
-            errors.append(f"{c.get('id')}: no free ESP32-H2 pin left")
-            continue
-        pins[c.get("id")] = free.pop(0)
+        pins[cid][role] = fit[0]
+        free.remove(fit[0])
     return pins, errors
 
 
@@ -241,7 +299,7 @@ def validate(panel, catalog):
     ids = [c.get("id") for c in comps + internals]
     for dup in {i for i in ids if ids.count(i) > 1}:
         errors.append(f"duplicate id {dup!r}")
-    errors += assign_pins(panel)[1]
+    errors += assign_pins(panel, catalog)[1]
 
     behind = []  # (id, rect) of everything behind the face
     placed = []
@@ -338,7 +396,8 @@ def wrapper(name, panel, catalog, out: Path) -> Path:
     for c in panel["components"]:
         e = catalog[c["type"]]
         records.append([c["id"], e["family"], c["x"], c["y"]]
-                       + [e[f] for f in COMPONENT_RECORD] + e["body"])
+                       + [e[f] for f in COMPONENT_RECORD + FRONT_FIELDS[e["family"]]]
+                       + e["body"])
     internals = []
     for item in panel.get("internals", []):
         e = catalog[item["type"]]
@@ -393,10 +452,11 @@ def main(argv):
             print(f"[info]  {name}: components center {off[0]:+g}, {off[1]:+g} mm (x, y)"
                   " off the board center")
         if not problems:
-            for cid, pin in assign_pins(panel)[0].items():
-                if pin not in WAKE_PINS:
-                    print(f"[info]  {name}: {cid} on GPIO{pin} cannot wake the ESP32-H2"
-                          f" from deep sleep (wake pins {sorted(WAKE_PINS)})")
+            for cid, roles in assign_pins(panel, catalog)[0].items():
+                for role, pin in roles.items():
+                    if pin not in WAKE_PINS:
+                        print(f"[info]  {name}: {pin_label(cid, role)} on GPIO{pin} cannot wake"
+                              f" the ESP32-H2 from deep sleep (wake pins {sorted(WAKE_PINS)})")
         used = panel.get("components", []) + panel.get("internals", [])
         for kind in sorted({c.get("type") for c in used}):
             if kind in catalog and not catalog[kind]["measured"]:

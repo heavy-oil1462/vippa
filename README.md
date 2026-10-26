@@ -12,8 +12,9 @@ sit in a cavity behind the face; no cable. It talks Zigbee, so a flip
 reaches Home Assistant at once instead of after a wifi reconnect. Open hardware and firmware.
 
 Status: the first panel, an oak slab with three toggles, is designed
-but not yet built. The toggle dimensions in the catalog are placeholders
-until measured on real parts. The ESPHome firmware is generated from the
+but not yet built. Toggles, encoder knobs, rotary switches and
+pushbuttons are in the catalog, all with placeholder dimensions until
+measured on real parts. The ESPHome firmware is generated from the
 panel and validated, but not yet flashed on a real ESP32-H2.
 
 ## Made with hand tools
@@ -64,7 +65,9 @@ print bed and the router bit able to make the cavity corners.
 
 A component may name its ESP32-H2 GPIO with `"pin"`; without one it
 gets the next free pin in a fixed order (`PIN_ORDER` in
-`scripts/panels.py`), so wire the toggles in that order.
+`scripts/panels.py`), so wire the controls in that order. An encoder
+takes three pins (push, A, B), and a rotary switch reads a resistor
+ladder on one ADC pin (docs/adr/0005-pins-for-knobs.md).
 
 Your tools go in `cad/design_params.scad`: center punch, guide bushing,
 router bit and print bed.
@@ -94,6 +97,17 @@ checks allow around them.
   Oak, 166 x 123 x 22 mm, six miniature toggles in two rows of three.
 
   ![The scenes panel](media/panels/scenes.png)
+
+- `dimmer`: a lamp dimmer, turn to dim and push to switch. Walnut,
+  170 x 91 x 22 mm, one encoder knob.
+
+  ![The dimmer panel](media/panels/dimmer.png)
+
+- `living_room`: scenes and brightness. Oak, 165 x 115 x 27 mm, a row
+  of a scene selector (rotary switch), two pushbuttons (apply the
+  scene, all off) and a brightness knob (encoder).
+
+  ![The living_room panel](media/panels/living_room.png)
 
 The pictures come from `python3 scripts/render_hero.py --panels`.
 

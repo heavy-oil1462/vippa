@@ -112,6 +112,11 @@ def PBR(name):
         return principled(name, base_color=(0.80, 0.77, 0.70, 1), roughness=0.6)
     if name == "pcb":
         return principled(name, base_color=(0.03, 0.18, 0.08, 1), roughness=0.35)
+    if name == "aluminium":  # machined knob: brushed, softer than chrome
+        return principled(name, base_color=(0.70, 0.70, 0.72, 1),
+                          metallic=1.0, roughness=0.32)
+    if name == "bakelite":  # knob: near black, a warm brown in the highlights
+        return principled(name, base_color=(0.018, 0.010, 0.007, 1), roughness=0.22)
     if name == "cell":
         return principled(name, base_color=(0.05, 0.10, 0.40, 1), roughness=0.25)
     raise ValueError(f"no PBR definition for material {name!r}")

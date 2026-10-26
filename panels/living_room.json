@@ -1,0 +1,15 @@
+{
+  "description": "Living room: an oak slab with a row centered on it, a scene selector, two pushbuttons (apply the scene, all off) and a brightness knob, the inline AA holder below the row and the ESP32 board above it",
+  "board": {"w": 165, "h": 115, "t": 27, "chamfer": 2, "material": "oak"},
+  "cavity": {"face_t": 4, "rim": 15, "r": 8},
+  "components": [
+    {"id": "scene", "type": "rotary_switch", "x": 27.5, "y": 57.5},
+    {"id": "apply", "type": "pushbutton_16mm", "x": 67.5, "y": 57.5},
+    {"id": "all_off", "type": "pushbutton_16mm", "x": 97.5, "y": 57.5},
+    {"id": "brightness", "type": "encoder_knob", "x": 137.5, "y": 57.5}
+  ],
+  "internals": [
+    {"id": "battery", "type": "battery_2aa_holder", "x": 82.5, "y": 31},
+    {"id": "esp", "type": "esp32_devboard", "x": 82.5, "y": 85}
+  ]
+}

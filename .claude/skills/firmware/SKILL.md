@@ -20,8 +20,15 @@ the packages in `firmware/packages/` with substitutions:
 - `zigbee.yaml`: the radio (ADR-0003). Another radio would be another
   package; component packages never mention the radio.
 - one package per catalog family, `FAMILY_PACKAGES` in
-  `scripts/firmware.py`. `toggle.yaml` takes vars `id`, `name` (the
-  component id) and `pin`.
+  `scripts/firmware.py`. Each takes vars `id`, `name` (the component
+  id) and its pins: `pin` for a one pin family, `pin_<role>` for the
+  others (ADR-0005). `FAMILY_VARS` passes catalog fields too.
+  - `toggle.yaml`: binary input, pull resistors off (ON-ON wiring).
+  - `pushbutton.yaml`: binary input on the pull up.
+  - `encoder.yaml`: analog input 0 to 100 percent and the push as
+    binary input `<name>_push`; vars `pin_a`, `pin_b`, `pin_push`.
+  - `rotary.yaml`: analog input, the position, from a resistor ladder
+    on an ADC pin; var `positions` from the catalog.
 
 `esphome config` from the nixpkgs pin in `scripts/render_scad.py`
 validates each config; `ESPHOME=/path/to/esphome` overrides it. Any

@@ -1,0 +1,59 @@
+# One rotary encoder with push: the knob as a Zigbee analog input, a level
+# from 0 to 100 percent, and the push as a binary input named <name>_push.
+#
+# Wiring: the two phases (A, B) and the push switch each between its pin
+# and ground, on the internal pull ups. Use an encoder whose contacts
+# are both open at every detent (most 20 detent, 20 pulse parts): at
+# rest no current flows. One that rests with a contact closed draws
+# about 70 uA through the pull up, more than the whole sleep budget
+# (docs/CONCEPT.md, Power).
+#
+# One detent is one count, 20 counts from 0 to 100 percent: one turn of
+# a 20 detent encoder goes from off to full. The count survives deep
+# sleep in flash (restore_mode); turns while the panel sleeps are not
+# counted (docs/CONCEPT.md, Open questions).
+#
+# Vars (one !include per encoder, from scripts/firmware.py):
+#   id        ESPHome id, a C++ identifier made from the component id
+#   name      entity name, the component id in the panel JSON
+#   pin_a     GPIO of phase A, from the panel or the automatic order in
+#   pin_b     GPIO of phase B   scripts/panels.py
+#   pin_push  GPIO of the push switch
+
+sensor:
+  - platform: rotary_encoder
+    id: ${id}
+    name: ${name}
+    report: force
+    unit_of_measurement: "%"
+    accuracy_decimals: 0
+    pin_a:
+      number: ${pin_a}
+      mode:
+        input: true
+        pullup: true
+    pin_b:
+      number: ${pin_b}
+      mode:
+        input: true
+        pullup: true
+    min_value: 0
+    max_value: 20
+    restore_mode: RESTORE_DEFAULT_ZERO
+    publish_initial_value: true
+    filters:
+      - multiply: 5
+
+binary_sensor:
+  - platform: gpio
+    id: ${id}_push
+    name: ${name}_push
+    report: force
+    pin:
+      number: ${pin_push}
+      inverted: true
+      mode:
+        input: true
+        pullup: true
+    filters:
+      - delayed_on_off: 10ms

@@ -7,7 +7,9 @@ firmware/packages/ included with substitutions, nothing else. The base
 package (ESP32-H2, deep sleep) comes first, then the radio package
 (zigbee.yaml, ADR-0003), then one package per component, chosen by its
 catalog family (FAMILY_PACKAGES). Each component's entity is named after
-its id in the panel JSON, on the pin panels.assign_pins gives it.
+its id in the panel JSON, on the pins panels.assign_pins gives it: var
+pin for a family's only pin, pin_<role> for the others (an encoder's
+pin_a, pin_b, pin_push).
 
 Firmware is a consumer of the panel and the catalog only: nothing on the
 CAD side reads anything written here.
@@ -36,7 +38,14 @@ BUILD = ROOT / "build"
 BASE = "h2_base.yaml"
 RADIO = "zigbee.yaml"
 # catalog family -> its package in firmware/packages/
-FAMILY_PACKAGES = {"toggle": "toggle.yaml"}
+FAMILY_PACKAGES = {
+    "toggle": "toggle.yaml",
+    "encoder": "encoder.yaml",
+    "rotary": "rotary.yaml",
+    "pushbutton": "pushbutton.yaml",
+}
+# catalog family -> catalog fields its package takes as vars
+FAMILY_VARS = {"rotary": ["positions"]}
 MODEL_MAX = 31  # Zigbee basic cluster model string
 
 
@@ -58,7 +67,7 @@ def entity_id(family: str, cid: str) -> str:
 
 def config(name, panel, catalog, out: Path) -> Path:
     """Write the ESPHome config for one valid panel to out (a .yaml path)."""
-    pins, errors = panels.assign_pins(panel)
+    pins, errors = panels.assign_pins(panel, catalog)
     if errors:
         raise ValueError("; ".join(errors))
     q = json.dumps  # a JSON string is a valid YAML scalar
@@ -76,7 +85,8 @@ def config(name, panel, catalog, out: Path) -> Path:
         f"  radio: !include {rel(RADIO)}",
     ]
     for c in panel["components"]:
-        family = catalog[c["type"]]["family"]
+        entry = catalog[c["type"]]
+        family = entry["family"]
         if family not in FAMILY_PACKAGES:
             raise ValueError(f"{c['id']}: no firmware package for family {family!r}")
         eid = entity_id(family, c["id"])
@@ -86,8 +96,10 @@ def config(name, panel, catalog, out: Path) -> Path:
             "    vars:",
             f"      id: {eid}",
             f"      name: {q(str(c['id']))}",
-            f"      pin: GPIO{pins[c['id']]}",
         ]
+        lines += [f"      {'pin' if role == 'pin' else 'pin_' + role}: GPIO{pin}"
+                  for role, pin in pins[c["id"]].items()]
+        lines += [f"      {field}: {q(entry[field])}" for field in FAMILY_VARS.get(family, [])]
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text("\n".join(lines) + "\n")
     return out

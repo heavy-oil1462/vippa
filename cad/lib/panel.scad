@@ -25,9 +25,11 @@ BLACK = "#222222";
 PRINTED = "#E8E4DA";
 PCB = "#1E5C3A";
 CELL = "#2E4A9E";
+ALUMINIUM = "#A8A9AD";
+BAKELITE = "#1A1210";
 
 // Component record, written by scripts/panels.py. Keep-in-sync sweep:
-// these indices and COMPONENT_RECORD in panels.py.
+// these indices, COMPONENT_RECORD and FRONT_FIELDS in panels.py.
 function c_id(c) = c[0];
 function c_family(c) = c[1];
 function c_x(c) = c[2];
@@ -37,8 +39,13 @@ function c_bushing_d(c) = c[5];
 function c_bushing_len(c) = c[6];
 function c_nut_af(c) = c[7];
 function c_nut_t(c) = c[8];
-function c_lever_d(c) = c[9];
+// the family's two front fields
+function c_lever_d(c) = c[9];      // toggle
 function c_lever_len(c) = c[10];
+function c_knob_d(c) = c[9];       // encoder, rotary
+function c_knob_h(c) = c[10];
+function c_cap_d(c) = c[9];        // pushbutton head
+function c_cap_h(c) = c[10];
 function c_body(c) = [c[11], c[12], c[13]];
 
 // Internal record (boards, batteries in the cavity), written by
@@ -79,26 +86,96 @@ module board_wood(board, cavity, components) {
     }
 }
 
-// A bat handle toggle as mounted: back nut, body behind the face, front
-// nut and lever in front. throw is the lever angle from upright, + up.
-module toggle_stand_in(c, t, face_t, throw = 0) {
+// The mount every face mounted family shares, at the origin: the back
+// nut and the body behind the face, and with front_nut the bushing
+// standing proud and the front nut on it. A pushbutton has its head in
+// front instead.
+module mount_stand_in(c, t, face_t, front_nut = true) {
     nut_d = c_nut_af(c) / cos(30);
-    above = c_bushing_len(c) - face_t - c_nut_t(c);
     body = c_body(c);
-    translate([c_x(c), c_y(c), 0]) {
-        color(CHROME) {
-            translate([0, 0, t]) cylinder(d = c_bushing_d(c), h = above);
+    color(CHROME) {
+        if (front_nut) {
+            translate([0, 0, t]) cylinder(d = c_bushing_d(c), h = bushing_above(c, face_t));
             translate([0, 0, t]) cylinder(d = nut_d, h = c_nut_t(c), $fn = 6);
-            translate([0, 0, t - face_t - c_nut_t(c)])
-                cylinder(d = nut_d, h = c_nut_t(c), $fn = 6);
+        }
+        translate([0, 0, t - face_t - c_nut_t(c)]) cylinder(d = nut_d, h = c_nut_t(c), $fn = 6);
+    }
+    color(BLACK)
+        translate([-body[0] / 2, -body[1] / 2, t - face_t - c_nut_t(c) - body[2]])
+            cube(body);
+}
+
+// How far the bushing stands proud of the face, the back nut taking up
+// what the face leaves.
+function bushing_above(c, face_t) = c_bushing_len(c) - face_t - c_nut_t(c);
+
+// A bat handle toggle as mounted: the mount and the lever in front.
+// throw is the lever angle from upright, + up.
+module toggle_stand_in(c, t, face_t, throw = 0) {
+    above = bushing_above(c, face_t);
+    translate([c_x(c), c_y(c), 0]) {
+        mount_stand_in(c, t, face_t);
+        color(CHROME)
             translate([0, 0, t + above - c_lever_d(c) / 2]) rotate([-throw, 0, 0]) {
                 cylinder(d1 = 0.6 * c_lever_d(c), d2 = c_lever_d(c), h = c_lever_len(c));
                 translate([0, 0, c_lever_len(c)]) sphere(d = c_lever_d(c));
             }
+    }
+}
+
+// Disc of diameter d with n rounded flutes cut around its edge, for
+// knurls and fluted knob grips.
+module fluted_disc(d, n, depth) {
+    difference() {
+        circle(d = d);
+        for (i = [0 : n - 1])
+            rotate(i * 360 / n) translate([d / 2 + depth / 2, 0]) circle(d = 2 * depth, $fn = 12);
+    }
+}
+
+// An encoder as mounted: the mount and a machined aluminium knob on the
+// shaft, sitting on the bushing, knurled below a chamfered top.
+module encoder_stand_in(c, t, face_t) {
+    d = c_knob_d(c); h = c_knob_h(c);
+    translate([c_x(c), c_y(c), 0]) {
+        mount_stand_in(c, t, face_t);
+        color(ALUMINIUM) translate([0, 0, t + bushing_above(c, face_t)]) {
+            linear_extrude(0.7 * h) fluted_disc(d, round(PI * d / 1.2), 0.5);
+            translate([0, 0, 0.7 * h]) cylinder(d1 = d, d2 = 0.8 * d, h = 0.3 * h);
         }
-        color(BLACK)
-            translate([-body[0] / 2, -body[1] / 2, t - face_t - c_nut_t(c) - body[2]])
-                cube(body);
+    }
+}
+
+// A rotary switch as mounted: the mount and a skirted bakelite pointer
+// knob, a fluted grip on a skirt with a metal pointer line toward +y.
+module rotary_stand_in(c, t, face_t) {
+    d = c_knob_d(c); h = c_knob_h(c);
+    skirt = 0.2 * h;
+    translate([c_x(c), c_y(c), 0]) {
+        mount_stand_in(c, t, face_t);
+        translate([0, 0, t + bushing_above(c, face_t)]) {
+            color(BAKELITE) {
+                cylinder(d1 = d, d2 = 0.9 * d, h = skirt);
+                linear_extrude(h - 0.1 * h) fluted_disc(0.55 * d, 10, 0.06 * d);
+                translate([0, 0, h - 0.1 * h]) cylinder(d1 = 0.55 * d, d2 = 0.45 * d, h = 0.1 * h);
+            }
+            // the pointer line, laid into the skirt's slope
+            color(ALUMINIUM) translate([-0.02 * d, 0.3 * d, 0])
+                cube([0.04 * d, 0.14 * d, skirt + eps]);
+        }
+    }
+}
+
+// A pushbutton as mounted: the back nut and body behind the face, and
+// in front the head, a chamfered bezel with the button standing in it.
+module pushbutton_stand_in(c, t, face_t) {
+    d = c_cap_d(c); h = c_cap_h(c);
+    translate([c_x(c), c_y(c), 0]) {
+        mount_stand_in(c, t, face_t, front_nut = false);
+        color(CHROME) translate([0, 0, t]) {
+            cylinder(d1 = d, d2 = 0.9 * d, h = 0.6 * h);
+            cylinder(d = 0.7 * d, h = h);
+        }
     }
 }
 
@@ -130,12 +207,23 @@ module internal_stand_in(m, floor_z) {
 }
 
 // The finished panel. Toggles alternate up and down so a render shows
-// both lever positions.
+// both lever positions. Keep-in-sync sweep for families: FRONT_FIELDS in
+// panels.py.
 module finished_panel(board, cavity, components, internals) {
     board_wood(board, cavity, components);
-    for (i = [0 : len(components) - 1])
-        if (c_family(components[i]) == "toggle")
-            toggle_stand_in(components[i], board[2], cavity[0], i % 2 == 0 ? 14 : -14);
+    for (i = [0 : len(components) - 1]) {
+        c = components[i]; t = board[2]; face_t = cavity[0];
+        if (c_family(c) == "toggle")
+            toggle_stand_in(c, t, face_t, i % 2 == 0 ? 14 : -14);
+        else if (c_family(c) == "encoder")
+            encoder_stand_in(c, t, face_t);
+        else if (c_family(c) == "rotary")
+            rotary_stand_in(c, t, face_t);
+        else if (c_family(c) == "pushbutton")
+            pushbutton_stand_in(c, t, face_t);
+        else
+            assert(false, str("no stand-in for family ", c_family(c)));
+    }
     assert(len(internals) == 0 || holder_screw_len - holder_flange_t <= cavity[0] - face_skin,
            str("holder screws reach ", holder_screw_len - holder_flange_t, " mm into a ",
                cavity[0], " mm face, more than face_t - face_skin"));

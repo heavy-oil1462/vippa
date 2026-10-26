@@ -1,0 +1,12 @@
+{
+  "description": "Lamp dimmer: a walnut slab with one encoder knob centered, turn to dim and push to switch, the ESP32 board beside it and the inline AA holder below",
+  "board": {"w": 170, "h": 91, "t": 22, "chamfer": 2, "material": "walnut"},
+  "cavity": {"face_t": 4, "rim": 15, "r": 8},
+  "components": [
+    {"id": "lamp", "type": "encoder_knob", "x": 85, "y": 45.5}
+  ],
+  "internals": [
+    {"id": "battery", "type": "battery_2aa_holder", "x": 85, "y": 27.5},
+    {"id": "esp", "type": "esp32_devboard", "x": 123, "y": 52}
+  ]
+}

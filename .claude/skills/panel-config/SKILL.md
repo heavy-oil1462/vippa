@@ -34,9 +34,12 @@ python3 scripts/regen_all.py <name>       # templates and previews into build/pa
 panels/ holds ready-made examples, each with a README picture in
 media/panels/: three_toggles (the first panel, three full size toggles
 in a row), bedside (one toggle, walnut, the ESP32 board beside it),
-hallway (two toggles in a row) and scenes (six miniature toggles in two
-rows of three, a 22 mm board, the ESP32 board turned 90 beside them).
-Start a new panel from the closest one.
+hallway (two toggles in a row), scenes (six miniature toggles in two
+rows of three, a 22 mm board, the ESP32 board turned 90 beside them),
+dimmer (one encoder knob, walnut, a 22 mm board) and living_room (a row
+of a rotary switch, two pushbuttons and an encoder knob, the battery
+below the row and the ESP32 board above it). Start a new panel from
+the closest one.
 
 ## Layout: start centered
 
@@ -70,9 +73,16 @@ why in its description.
   generated firmware, so keep it stable and meaningful.
 - pin (optional) is the component's ESP32-H2 GPIO, one of PINS in
   panels.py, each used once. Without it the component takes the next
-  free pin in PIN_ORDER (wake capable 10 to 14 first). panels.py prints
-  `[info] ... cannot wake` for a toggle outside 10 to 14. See the
+  free pin in PIN_ORDER (wake capable 10 to 14 first). An encoder
+  (encoder_knob) takes three pins; its pin is an object with some of
+  push, a and b, e.g. `"pin": {"push": 10}`, the rest assigned. A
+  rotary switch (rotary_switch) takes one ADC pin, 1, 4 or 5, and can
+  never wake the panel (ADR-0005). panels.py prints
+  `[info] ... cannot wake` for any pin outside 10 to 14. See the
   firmware skill.
+- Knobs need room: keepout_d of a knob is the knob plus fingers, so
+  knobs sit further apart than toggles, and a pushbutton between two
+  knobs saves width.
 
 ## Procedure
 
@@ -99,6 +109,10 @@ why in its description.
 - `... is metal inside the antenna keepout`: turn the board so its
   antenna end faces a wall with nothing metal in between.
 - `keepouts need`: spread the parts; keepout_d is in the catalog.
+- `pin ... is not an ADC pin`: a rotary switch reads a resistor
+  ladder; give it 1, 4 or 5, or leave pin out.
+- `pin must be an object`: an encoder's pin names its roles,
+  `{"push": .., "a": .., "b": ..}`.
 - `holder screws reach ... mm into a ... mm face`: the face is too thin
   for holder_screw_len; use shorter screws or a thicker face.
 - An assert from cad/lib/panel.scad during regen (bit radius, rail

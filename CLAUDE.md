@@ -54,8 +54,9 @@ switch.
 ## Layout
 
 - `panels/<name>.json`: one panel. Validated by `scripts/panels.py`,
-  including the optional `"pin"` per component (ESP32-H2 GPIO; missing
-  pins follow `PIN_ORDER`).
+  including the optional `"pin"` per component (ESP32-H2 GPIO, an
+  object of roles for an encoder, an ADC pin for a rotary switch;
+  missing pins follow `PIN_ORDER`).
 - `catalog/components.json`: panel hardware dimensions.
 - `cad/design_params.scad`: tools, printer and fits shared by every
   panel. `check_params.py` fails the build if any file re-declares one
@@ -71,7 +72,8 @@ switch.
   size.
 - `firmware/packages/`: hand written ESPHome packages: `h2_base.yaml`
   (chip, deep sleep, `poll_period`), `zigbee.yaml` (the radio) and one
-  per component family (`toggle.yaml`). `scripts/firmware.py` includes
+  per component family (`toggle.yaml`, `encoder.yaml`, `rotary.yaml`,
+  `pushbutton.yaml`). `scripts/firmware.py` includes
   them with substitutions into `build/panels/<name>/<name>.yaml`.
 - `docs/adr/`: architecture decision records, index in its README.
 - `scripts/`: Python tools, stdlib only. `hero_scene.py` runs inside
