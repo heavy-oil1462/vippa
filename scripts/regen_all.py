@@ -8,7 +8,7 @@ Pipeline:
   1. scripts/check_params.py     shared dimensions are never shadowed
   2. scripts/check_style.py      docs and comments follow the writing rules
   3. scripts/panels.py           catalog and every panel config are valid
-     scripts/check_panel_rules.py each display check fails a broken panel
+     scripts/check_panel_rules.py each display and lamp check fails a broken panel
   4. every model under cad/      -> build/<category>/<name>.stl
      catalog parts with a "model" (printed holders and bezels) must match
      the catalog: the STL bounding box is compared with a module's

@@ -41,6 +41,11 @@ cavity corner, are asserts in cad/lib/panel.scad):
   - a display shows a knob on the panel ("shows", an encoder or rotary
     switch id, the first one by default): ESPHome's Zigbee on the H2
     cannot receive a value yet (docs/CONCEPT.md, Open questions)
+  - a pilot lamp mounts like a pushbutton, through the checks above,
+    and counts as metal for the antenna keepout. It follows a control
+    on the panel ("follows", the id of a toggle, an encoder for its
+    push, or a pushbutton), since the H2 cannot receive a state either,
+    and its optional "color" is one of its catalog entry's colors
 
 Catalog entries with "measured": false are reported as [info]: their
 values are placeholders until someone puts calipers on the real part.
@@ -69,21 +74,24 @@ PARAMS = ROOT / "cad" / "design_params.scad"
 
 COMMON_FIELDS = {"description": str, "family": str, "measured": bool, "source": str}
 # Every family that mounts through the face does it the toggle's way: a
-# round hole, a threaded bushing (a pushbutton's threaded body) clamped by
-# a nut behind the face, and the body behind that nut. In front sits a
-# second nut (toggle, encoder, rotary) or the pushbutton's head.
+# round hole, a threaded bushing (a pushbutton's or lamp's threaded body)
+# clamped by a nut behind the face, and the body behind that nut. In
+# front sits a second nut (toggle, encoder, rotary) or the head of a
+# pushbutton or lamp.
 MOUNT_FIELDS = {
     "hole_d": float, "bushing_d": float, "bushing_len": float,
     "max_panel_t": float, "nut_af": float, "nut_t": float,
     "body": list, "keepout_d": float,
 }
 # Mounted family -> the two fields its stand-in shows in front of the
-# face, in record order: the lever, the knob or the pushbutton's head.
+# face, in record order: the lever, the knob or the head of a pushbutton
+# or lamp (a lamp's chrome bezel).
 FRONT_FIELDS = {
     "toggle": ["lever_d", "lever_len"],
     "encoder": ["knob_d", "knob_h"],
     "rotary": ["knob_d", "knob_h"],
     "pushbutton": ["cap_d", "cap_h"],
+    "lamp": ["bezel_d", "bezel_h"],
 }
 # family -> fields it needs beyond COMMON_FIELDS. The FRONT_FIELDS
 # families mount through the face; "module" (boards, batteries) sits in
@@ -93,6 +101,20 @@ FAMILY_FIELDS = {
     "module": {"size": list, "finish": str},
 }
 FAMILY_FIELDS["rotary"]["positions"] = int
+# A pilot lamp also has its lens, standing in the bezel, lens_h above the
+# face, the LED current in mA and the lens colors it is sold in.
+FAMILY_FIELDS["lamp"].update(lens_d=float, lens_h=float, led_ma=float, colors=list)
+LAMPS = {"lamp"}
+# Lens colors the stand-in and the renders know. Keep-in-sync sweep: LENS
+# in cad/lib/panel.scad and the lamp_* materials (hero-render skill).
+LENS_COLORS = {"red", "amber", "green"}
+# The most a lamp's LED may draw from its pin: ESPHome's default drive
+# strength for an ESP32 GPIO (mA). The lamp hangs on the pin, no driver.
+LED_MAX_MA = 20
+# Families a lamp may follow, each through a binary input of its own: a
+# toggle's position, an encoder's push, a pushbutton
+# (firmware/packages/lamp.yaml).
+FOLLOWED_FAMILIES = {"toggle", "encoder", "pushbutton"}
 # A display sits in the cavity and shows through a window routed through
 # the face (ADR-0006): digits [w, h, height] is the LED block, height
 # above the module's board; window [w, h] the opening in the face; body
@@ -123,6 +145,9 @@ COMPONENT_RECORD = ["hole_d", "bushing_d", "bushing_len", "nut_af", "nut_t"]
 # Keep-in-sync sweep: the d_* index functions in cad/lib/panel.scad. A
 # display's record is its id, x, y and these fields, flattened.
 DISPLAY_RECORD = ["window", "digits", "body", "bezel"]
+# Keep-in-sync sweep: the l_* index functions in cad/lib/panel.scad. A
+# lamp's record is a component record, then these fields and its color.
+LAMP_RECORD = ["lens_d", "lens_h"]
 # Board materials the renders know. Keep-in-sync sweep: PBR() in
 # scripts/hero_scene.py. Brass waits for its open question (CONCEPT.md).
 WOODS = {"oak", "walnut"}
@@ -151,10 +176,10 @@ FAMILY_PINS = {"encoder": ["push", "a", "b"], "display": ["clk", "dio"]}
 # Families that read their pin as an analog voltage: a rotary switch is a
 # resistor ladder on one ADC pin (firmware/packages/rotary.yaml).
 ADC_FAMILIES = {"rotary"}
-# Families that only drive their pins, a display's CLK and DIO: they take
-# the pins that can neither wake nor read a voltage first, so the wake and
-# ADC pins stay free for controls (ADR-0007).
-OUTPUT_FAMILIES = {"display"}
+# Families that only drive their pins, a display's CLK and DIO, a lamp's
+# LED: they take the pins that can neither wake nor read a voltage first,
+# so the wake and ADC pins stay free for controls (ADR-0007).
+OUTPUT_FAMILIES = {"display", "lamp"}
 OUTPUT_ORDER = ([p for p in PIN_ORDER if p not in WAKE_PINS | ADC_PINS]
                 + [p for p in PIN_ORDER if p in ADC_PINS]
                 + [p for p in PIN_ORDER if p in WAKE_PINS])
@@ -189,6 +214,8 @@ def load_catalog():
                 errors.append(f"catalog {name}: {field} must be [w, l, depth]")
         if family in DISPLAYS:
             errors += display_catalog_errors(name, entry)
+        if family in LAMPS:
+            errors += lamp_catalog_errors(name, entry)
         if family == "module" and entry.get("finish") not in FINISHES:
             errors.append(f"catalog {name}: finish must be one of {sorted(FINISHES)}")
         if family == "module" and "antenna_end" in entry and not (
@@ -213,6 +240,18 @@ def display_catalog_errors(name, entry):
     if not all(bezel[i] >= window[i] + 2 * BEZEL_LAP for i in (0, 1)):
         errors.append(f"catalog {name}: bezel {bezel[:2]} must cover the window {window}"
                       f" by {BEZEL_LAP:g} mm all round")
+    return errors
+
+
+def lamp_catalog_errors(name, entry):
+    """Problems with a lamp entry beyond its field types."""
+    errors = []
+    colors = entry.get("colors")
+    if not (isinstance(colors, list) and colors and set(colors) <= LENS_COLORS):
+        errors.append(f"catalog {name}: colors must be a list of some of {sorted(LENS_COLORS)}")
+    if is_num(entry.get("led_ma")) and not 0 < entry["led_ma"] <= LED_MAX_MA:
+        errors.append(f"catalog {name}: led_ma {entry['led_ma']} must be above 0 and at most"
+                      f" {LED_MAX_MA}, what an ESP32-H2 pin drives")
     return errors
 
 
@@ -285,6 +324,18 @@ def display_source(comp, comps, catalog):
     knobs = [k.get("id") for k in comps if family_of(k, catalog) in SHOWN_FAMILIES]
     shown = comp.get("shows", knobs[0] if knobs else None)
     return shown if shown in knobs else None
+
+
+def lamp_source(comp, comps, catalog):
+    """The component a lamp follows, its "follows" if that names a toggle,
+    encoder or pushbutton on the panel, else None."""
+    return next((c for c in comps if c.get("id") == comp.get("follows")
+                 and family_of(c, catalog) in FOLLOWED_FAMILIES), None)
+
+
+def lamp_color(comp, entry):
+    """A lamp's lens color: its "color", else its catalog entry's first."""
+    return comp.get("color", entry["colors"][0])
 
 
 def has_display(panel, catalog):
@@ -409,6 +460,8 @@ def validate(panel, catalog):
                               f" {(e['keepout_d'] + okeep) / 2:.1f}")
         placed.append((cid, x, y, e["keepout_d"]))
         behind.append((cid, back_footprint(c, e)))
+        if e["family"] in LAMPS:
+            errors += lamp_errors(c, e, comps, catalog)
 
     clear = INTERNAL_CLEARANCE
     bezels = []  # (id, rect)
@@ -487,6 +540,20 @@ def validate(panel, catalog):
     return errors
 
 
+def lamp_errors(comp, entry, comps, catalog):
+    """Problems with what a lamp follows and its color."""
+    errors, cid = [], comp["id"]
+    if lamp_source(comp, comps, catalog) is None:
+        controls = [c.get("id") for c in comps if family_of(c, catalog) in FOLLOWED_FAMILIES]
+        errors.append(f"{cid}: follows {comp.get('follows')!r}, but a lamp follows one of the"
+                      f" panel's toggles, encoders or pushbuttons {controls}; ESPHome's"
+                      " Zigbee on the H2 cannot receive a state to show yet")
+    if lamp_color(comp, entry) not in entry["colors"]:
+        errors.append(f"{cid}: color {comp['color']!r} is not one of {comp['type']}'s"
+                      f" colors {entry['colors']}")
+    return errors
+
+
 def center_offset(panel):
     """(dx, dy) from the board center to the bounding box center of the
     component positions, or None when there is nothing to measure."""
@@ -520,7 +587,9 @@ def wrapper(name, panel, catalog, out: Path) -> Path:
             continue
         records.append([c["id"], e["family"], c["x"], c["y"]]
                        + [e[f] for f in COMPONENT_RECORD + FRONT_FIELDS[e["family"]]]
-                       + e["body"])
+                       + e["body"]
+                       + ([e[f] for f in LAMP_RECORD] + [lamp_color(c, e)]
+                          if e["family"] in LAMPS else []))
     internals = []
     for item in panel.get("internals", []):
         e = catalog[item["type"]]

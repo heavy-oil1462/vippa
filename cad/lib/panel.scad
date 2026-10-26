@@ -29,6 +29,12 @@ CELL = "#2E4A9E";
 ALUMINIUM = "#A8A9AD";
 BAKELITE = "#1A1210";
 LED = "#E8302A";
+// A lit pilot lamp's lens, by the panel's color. Keep-in-sync sweep:
+// LENS_COLORS in panels.py and the lamp_* materials.
+LENS = [["red", "#FF3A1C"], ["amber", "#FFA319"], ["green", "#3CD95A"]];
+
+function lens_tag(color) = let(i = search([color], LENS)[0])
+    assert(i != [], str("no lens color ", color)) LENS[i][1];
 
 // Component record, written by scripts/panels.py. Keep-in-sync sweep:
 // these indices, COMPONENT_RECORD and FRONT_FIELDS in panels.py.
@@ -48,7 +54,13 @@ function c_knob_d(c) = c[9];       // encoder, rotary
 function c_knob_h(c) = c[10];
 function c_cap_d(c) = c[9];        // pushbutton head
 function c_cap_h(c) = c[10];
+function c_bezel_d(c) = c[9];      // lamp bezel
+function c_bezel_h(c) = c[10];
 function c_body(c) = [c[11], c[12], c[13]];
+// a lamp's record goes on: LAMP_RECORD in panels.py and its color
+function l_lens_d(c) = c[14];
+function l_lens_h(c) = c[15];
+function l_color(c) = c[16];
 
 // Internal record (boards, batteries in the cavity), written by
 // scripts/panels.py. Size is already turned for rot. Keep-in-sync sweep:
@@ -197,6 +209,27 @@ module pushbutton_stand_in(c, t, face_t) {
     }
 }
 
+// A pilot lamp as mounted: the back nut and body behind the face, and in
+// front the chrome bezel, a flange with a collar, holding the domed lens.
+// The lens is lit, as it is for display_time after an event.
+module lamp_stand_in(c, t, face_t) {
+    d = c_bezel_d(c); h = c_bezel_h(c);
+    ld = l_lens_d(c); lh = l_lens_h(c);
+    dome = min(ld / 3, lh - h);
+    assert(lh > h && ld < d, str(c_id(c), ": the lens must stand in the bezel and above it"));
+    translate([c_x(c), c_y(c), 0]) {
+        mount_stand_in(c, t, face_t, front_nut = false);
+        color(CHROME) translate([0, 0, t]) {
+            cylinder(d1 = d, d2 = 0.9 * d, h = h);
+            cylinder(d = (ld + 0.9 * d) / 2, h = h + 0.15 * (lh - h));
+        }
+        color(lens_tag(l_color(c))) translate([0, 0, t]) {
+            cylinder(d = ld, h = lh - dome);
+            translate([0, 0, lh - dome]) scale([1, 1, 2 * dome / ld]) sphere(d = ld);
+        }
+    }
+}
+
 // Segments a to g of a seven segment digit, 1 lit: 0 to 9.
 SEGMENTS = [[1, 1, 1, 1, 1, 1, 0], [0, 1, 1, 0, 0, 0, 0], [1, 1, 0, 1, 1, 0, 1],
             [1, 1, 1, 1, 0, 0, 1], [0, 1, 1, 0, 0, 1, 1], [1, 0, 1, 1, 0, 1, 1],
@@ -286,6 +319,8 @@ module finished_panel(board, cavity, components, internals, displays = []) {
             rotary_stand_in(c, t, face_t);
         else if (c_family(c) == "pushbutton")
             pushbutton_stand_in(c, t, face_t);
+        else if (c_family(c) == "lamp")
+            lamp_stand_in(c, t, face_t);
         else
             assert(false, str("no stand-in for family ", c_family(c)));
     }

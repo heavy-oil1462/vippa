@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """Cases for the layout checks in scripts/panels.py: a check has a
 panel or catalog entry that fails it, so a check that stops working
-fails the gate. The display checks have theirs; a new check gets one
-here. Run by regen_all.py with the other gates.
+fails the gate. The display and lamp checks have theirs; a new check
+gets one here. Run by regen_all.py with the other gates.
 
-Every case starts from panels/thermostat.json, which passes, and breaks
-one rule. Standard library unittest only.
+Every case starts from an example panel that passes,
+panels/thermostat.json for a display and panels/garage.json for a
+lamp, and breaks one rule. Standard library unittest only.
 
 Usage:
     scripts/check_panel_rules.py
@@ -19,20 +20,19 @@ import unittest
 import panels
 
 
-class DisplayChecks(unittest.TestCase):
-    """The display family: a window through the face, a bezel in front of
-    it and the module behind it (ADR-0006)."""
+class PanelCase(unittest.TestCase):
+    """Loads the catalog and the example panel PANEL."""
+
+    PANEL = None
 
     def setUp(self):
         catalog, errors = panels.load_catalog()
         self.assertEqual(errors, [])
         self.catalog = catalog
-        self.panel = panels.load_panel("thermostat")
+        self.panel = panels.load_panel(self.PANEL)
 
-    def display(self, panel=None):
-        panel = panel or self.panel
-        return next(c for c in panel["components"]
-                    if self.catalog[c["type"]]["family"] == "display")
+    def component(self, cid):
+        return next(c for c in self.panel["components"] if c["id"] == cid)
 
     def problems(self, panel=None, catalog=None):
         return panels.validate(panel or self.panel, catalog or self.catalog)
@@ -41,6 +41,18 @@ class DisplayChecks(unittest.TestCase):
         problems = self.problems(panel, catalog)
         self.assertTrue(any(needle in p for p in problems),
                         f"no problem with {needle!r} in {problems}")
+
+
+class DisplayChecks(PanelCase):
+    """The display family: a window through the face, a bezel in front of
+    it and the module behind it (ADR-0006)."""
+
+    PANEL = "thermostat"
+
+    def display(self, panel=None):
+        panel = panel or self.panel
+        return next(c for c in panel["components"]
+                    if self.catalog[c["type"]]["family"] == "display")
 
     def test_thermostat_passes(self):
         self.assertEqual(self.problems(), [])
@@ -123,6 +135,69 @@ class DisplayChecks(unittest.TestCase):
         entry["bezel"][1] = entry["window"][1] + 1
         self.assertTrue(any("must cover the window" in e
                             for e in panels.display_catalog_errors("x", entry)))
+
+
+class LampChecks(PanelCase):
+    """The lamp family: a pilot lamp mounted like a pushbutton, lit after
+    an event of the control it follows."""
+
+    PANEL = "garage"
+
+    def test_garage_passes(self):
+        self.assertEqual(self.problems(), [])
+
+    def test_mount_checks(self):
+        self.component("door_lamp")["y"] -= 10
+        self.assertFails("door_lamp: 18.0 mm from door, keepouts need")
+
+    def test_body_is_metal_for_the_antenna(self):
+        esp = next(i for i in self.panel["internals"] if i["id"] == "esp")
+        esp.update(rot=0, x=75, y=101)  # above the lamps, antenna end +x
+        self.component("lights_lamp").update(x=118, y=101)  # past that end
+        self.panel["board"]["h"] = 140
+        self.assertFails("lights_lamp is metal inside the antenna keepout")
+
+    def test_follows_a_component(self):
+        self.component("door_lamp")["follows"] = "garage_door"
+        self.assertFails("a lamp follows one of the panel's toggles")
+
+    def test_follows_a_control(self):
+        self.component("door_lamp")["follows"] = "lights_lamp"
+        self.assertFails("a lamp follows one of the panel's toggles")
+
+    def test_needs_follows(self):
+        del self.component("door_lamp")["follows"]
+        self.assertFails("door_lamp: follows None")
+
+    def test_color_from_the_catalog(self):
+        self.component("door_lamp")["color"] = "blue"
+        self.assertFails("color 'blue' is not one of pilot_lamp_12mm's colors")
+
+    def test_color_defaults_to_the_first(self):
+        lamp = self.component("door_lamp")
+        del lamp["color"]
+        self.assertEqual(self.problems(), [])
+        entry = self.catalog[lamp["type"]]
+        self.assertEqual(panels.lamp_color(lamp, entry), entry["colors"][0])
+
+    def test_pins_off_the_wake_pins(self):
+        pins, errors = panels.assign_pins(self.panel, self.catalog)
+        self.assertEqual(errors, [])
+        for lamp in ("door_lamp", "lights_lamp"):
+            self.assertNotIn(pins[lamp]["pin"], panels.WAKE_PINS)
+        self.assertEqual([pins[c]["pin"] for c in ("door", "lights", "vent")], [10, 11, 12])
+
+    def test_catalog_colors_known(self):
+        entry = copy.deepcopy(self.catalog["pilot_lamp_12mm"])
+        entry["colors"].append("violet")
+        self.assertTrue(any("colors must be a list" in e
+                            for e in panels.lamp_catalog_errors("x", entry)))
+
+    def test_catalog_led_current(self):
+        entry = copy.deepcopy(self.catalog["pilot_lamp_12mm"])
+        entry["led_ma"] = panels.LED_MAX_MA + 5
+        self.assertTrue(any("what an ESP32-H2 pin drives" in e
+                            for e in panels.lamp_catalog_errors("x", entry)))
 
 
 if __name__ == "__main__":

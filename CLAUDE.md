@@ -56,7 +56,8 @@ switch.
 - `panels/<name>.json`: one panel. Validated by `scripts/panels.py`,
   including the optional `"pin"` per component (ESP32-H2 GPIO, an
   object of roles for an encoder or a display, an ADC pin for a rotary
-  switch; missing pins follow `PIN_ORDER`).
+  switch; missing pins follow `PIN_ORDER`), and a lamp's `"follows"`
+  and `"color"`.
 - `catalog/components.json`: panel hardware dimensions.
 - `cad/design_params.scad`: tools, printer and fits shared by every
   panel. `check_params.py` fails the build if any file re-declares one
@@ -77,8 +78,10 @@ switch.
 - `firmware/packages/`: hand written ESPHome packages: `h2_base.yaml`
   (chip, deep sleep, `poll_period`), `zigbee.yaml` (the radio) and one
   per component family (`toggle.yaml`, `encoder.yaml`, `rotary.yaml`,
-  `pushbutton.yaml`, `display.yaml`), and the event packages that light
-  a display (`display_on_turn.yaml`, `display_on_binary.yaml`). `scripts/firmware.py` includes
+  `pushbutton.yaml`, `display.yaml`, `lamp.yaml`), `lit.yaml` (how
+  long a display or lamp stays lit), and the event packages that light
+  them (`display_on_turn.yaml`, `display_on_binary.yaml`,
+  `lamp_on_toggle.yaml`, `lamp_on_press.yaml`). `scripts/firmware.py` includes
   them with substitutions into `build/panels/<name>/<name>.yaml`.
 - `docs/adr/`: architecture decision records, index in its README.
 - `scripts/`: Python tools, stdlib only. `hero_scene.py` runs inside
@@ -102,7 +105,7 @@ binaries). OpenSCAD, Blender and ESPHome come from the nixpkgs pin in
 - `python3 scripts/panels.py [name]`: validate panel configs and the
   catalog.
 - `python3 scripts/check_panel_rules.py`: a case that fails each
-  display check in panels.py (a gate in regen_all.py). A new check
+  display and lamp check in panels.py (a gate in regen_all.py). A new check
   gets its case here.
 - `python3 scripts/firmware.py [--check] [name]`: write (and validate)
   the ESPHome configs only.

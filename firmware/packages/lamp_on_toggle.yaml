@@ -1,0 +1,20 @@
+# Lights a lamp when the toggle it follows flips to on, and darkens it
+# at once when the toggle flips to off, so a lit lamp always means on.
+# The initial state at a wake is no event (ESPHome does not trigger on
+# it). See lamp.yaml.
+#
+# Vars (one !include per lamp following a toggle, from
+# scripts/firmware.py):
+#   source  ESPHome id of the toggle's binary sensor
+#   lamp    ESPHome id of the lamp
+
+binary_sensor:
+  - id: !extend ${source}
+    on_state:
+      - if:
+          condition:
+            binary_sensor.is_on: ${source}
+          then:
+            - script.execute: ${lamp}_show
+          else:
+            - script.execute: ${lamp}_dark

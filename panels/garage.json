@@ -1,0 +1,16 @@
+{
+  "description": "Garage: an oak slab with two full size toggles, door and lights, each with a pilot lamp above it that lights for a while after a flip to on, and a pushbutton between them that runs the vent; the inline AA holder below the row and the ESP32 board standing beside it",
+  "board": {"w": 178, "h": 127, "t": 27, "chamfer": 2, "material": "oak"},
+  "cavity": {"face_t": 4, "rim": 15, "r": 8},
+  "components": [
+    {"id": "door", "type": "toggle_12mm", "x": 54, "y": 49.5},
+    {"id": "door_lamp", "type": "pilot_lamp_12mm", "x": 54, "y": 77.5, "follows": "door", "color": "red"},
+    {"id": "lights", "type": "toggle_12mm", "x": 124, "y": 49.5},
+    {"id": "lights_lamp", "type": "pilot_lamp_12mm", "x": 124, "y": 77.5, "follows": "lights", "color": "amber"},
+    {"id": "vent", "type": "pushbutton_16mm", "x": 89, "y": 49.5}
+  ],
+  "internals": [
+    {"id": "battery", "type": "battery_2aa_holder", "x": 89, "y": 27},
+    {"id": "esp", "type": "esp32_devboard", "x": 148, "y": 72, "rot": 90}
+  ]
+}
