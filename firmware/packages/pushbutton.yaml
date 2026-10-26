@@ -1,0 +1,26 @@
+# One momentary pushbutton, reported as a Zigbee binary input (pressed or
+# not).
+#
+# Wiring: a normally open button between the pin and ground, on the
+# internal pull up. No current flows at rest; while the button is held
+# the pull up draws about 70 uA, which a press is too short to matter
+# for (docs/CONCEPT.md, Power).
+#
+# Vars (one !include per pushbutton, from scripts/firmware.py):
+#   id    ESPHome id, a C++ identifier made from the component id
+#   name  entity name, the component id in the panel JSON
+#   pin   GPIO, from the panel or the automatic order in scripts/panels.py
+
+binary_sensor:
+  - platform: gpio
+    id: ${id}
+    name: ${name}
+    report: force
+    pin:
+      number: ${pin}
+      inverted: true
+      mode:
+        input: true
+        pullup: true
+    filters:
+      - delayed_on_off: 10ms

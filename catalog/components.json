@@ -39,6 +39,67 @@
     "measured": false,
     "source": "PLACEHOLDER: typical datasheet values for a miniature toggle with a 1/4-40 bushing 8.9 mm (0.35 in) long, in the style of the C&K 7000 series, not taken from a real part. max_panel_t is the bushing less two nuts and a lock washer; keepout_d is judgement, room for a fingertip and the 5/16 in nut wrench. Replace with calipers on the toggles you mount."
   },
+  "encoder_knob": {
+    "description": "Incremental rotary encoder with push, M7 x 0.75 threaded bushing 9 mm long, 6 mm D shaft, with a knurled machined aluminium knob",
+    "family": "encoder",
+    "hole_d": 7.5,
+    "bushing_d": 7.0,
+    "bushing_len": 9.0,
+    "max_panel_t": 4.5,
+    "nut_af": 10.0,
+    "nut_t": 2.0,
+    "knob_d": 30.0,
+    "knob_h": 16.0,
+    "body": [
+      12.0,
+      13.5,
+      12.0
+    ],
+    "keepout_d": 50,
+    "measured": false,
+    "source": "PLACEHOLDER: typical datasheet values for a 12 mm square body incremental encoder with push switch and a long M7 x 0.75 bushing, in the style of the Alps EC11 and Bourns PEC11R series, 20 detents with both contacts open at rest; not taken from a real part. max_panel_t is the bushing less two nuts and a washer, the back nut setting how far the bushing stands proud. Knob in the style of a 30 mm knurled aluminium instrument knob. keepout_d is judgement, room for fingers around the knob. Replace with calipers on the encoder and knob you mount."
+  },
+  "rotary_switch": {
+    "description": "Rotary switch, 1 pole 6 positions, 3/8-32 UNEF threaded bushing, 6 mm shaft, with a skirted bakelite pointer knob",
+    "family": "rotary",
+    "hole_d": 10.0,
+    "bushing_d": 9.5,
+    "bushing_len": 9.5,
+    "max_panel_t": 4.2,
+    "nut_af": 12.7,
+    "nut_t": 2.4,
+    "knob_d": 30.0,
+    "knob_h": 15.0,
+    "positions": 6,
+    "body": [
+      25.0,
+      25.0,
+      18.0
+    ],
+    "keepout_d": 50,
+    "measured": false,
+    "source": "PLACEHOLDER: typical datasheet values for a 1 pole 12 way rotary switch with its end stop set to 6 positions and a 3/8-32 bushing 9.5 mm (3/8 in) long, in the style of the Lorlin CK series; not taken from a real part. max_panel_t is the bushing less two 1/2 in nuts and a washer. Knob in the style of a 30 mm skirted bakelite pointer knob. keepout_d is judgement, room for fingers around the knob. Replace with calipers on the switch and knob you mount."
+  },
+  "pushbutton_16mm": {
+    "description": "Metal momentary pushbutton, 16 mm threaded body, flat head, normally open",
+    "family": "pushbutton",
+    "hole_d": 16.2,
+    "bushing_d": 16.0,
+    "bushing_len": 13.0,
+    "max_panel_t": 9.0,
+    "nut_af": 19.0,
+    "nut_t": 3.0,
+    "cap_d": 18.0,
+    "cap_h": 2.5,
+    "body": [
+      16.0,
+      16.0,
+      18.0
+    ],
+    "keepout_d": 30,
+    "measured": false,
+    "source": "PLACEHOLDER: typical datasheet values for a 16 mm stainless anti-vandal momentary pushbutton with solder lugs, in the style of the Onpow GQ16 series; not taken from a real part. The head clamps the face against one back nut, so max_panel_t is the thread less the nut and a washer. body is the thread left behind the nut plus the switch and lugs. keepout_d is judgement, room for a fingertip and the nut wrench. Replace with calipers on the buttons you mount."
+  },
   "esp32_devboard": {
     "description": "ESP32-H2 board (Zigbee, no wifi) with an onboard PCB antenna at one end and a USB connector at the other",
     "family": "module",

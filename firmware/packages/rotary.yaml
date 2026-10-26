@@ -1,0 +1,43 @@
+# One rotary switch, reported as a Zigbee analog input: the position, 1
+# to positions.
+#
+# Wiring: a resistor ladder on one ADC pin, so a switch of any number of
+# positions takes one pin (ADR-0005). positions + 1 equal resistors in
+# series from 3.3 V to ground; the taps between them go to the switch
+# positions, the first above ground to position 1, and the switch's
+# common to the pin, with 100 nF from the pin to ground. Position k then
+# sits at k / (positions + 1) of 3.3 V, clear of both rails where the
+# ADC reads worst. With 470 k resistors the ladder draws about 1 uA,
+# always (docs/CONCEPT.md, Power). The rounding leaves half a step of
+# margin, so the 3.3 V rail may be off by several percent.
+#
+# An ADC pin cannot wake the H2, so a turn is reported on the next wake
+# (docs/CONCEPT.md, Open questions).
+#
+# Vars (one !include per rotary switch, from scripts/firmware.py):
+#   id         ESPHome id, a C++ identifier made from the component id
+#   name       entity name, the component id in the panel JSON
+#   pin        ADC GPIO, from the panel or the automatic order in
+#              scripts/panels.py
+#   positions  number of switch positions, from the catalog
+
+sensor:
+  - platform: adc
+    id: ${id}
+    name: ${name}
+    report: force
+    pin: ${pin}
+    attenuation: 12db
+    update_interval: 1s
+    unit_of_measurement: ""  # a position, not the adc's volts
+    device_class: ""
+    accuracy_decimals: 0
+    filters:
+      - calibrate_linear:
+          - 0.0 -> 0.0
+          - 3.3 -> ${positions + 1}
+      - round: 0
+      - clamp:
+          min_value: 1
+          max_value: ${positions}
+      - delta: 0.5
