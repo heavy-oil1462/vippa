@@ -43,9 +43,9 @@ cavity corner, are asserts in cad/lib/panel.scad):
     cannot receive a value yet (docs/CONCEPT.md, Open questions)
   - a pilot lamp mounts like a pushbutton, through the checks above,
     and counts as metal for the antenna keepout. It follows a control
-    on the panel ("follows", the id of a toggle, an encoder, whose push
-    it follows, or a pushbutton), for the same reason, and its optional
-    "color" is one of its catalog entry's colors
+    on the panel ("follows", the id of a toggle, an encoder for its
+    push, or a pushbutton), since the H2 cannot receive a state either,
+    and its optional "color" is one of its catalog entry's colors
 
 Catalog entries with "measured": false are reported as [info]: their
 values are placeholders until someone puts calipers on the real part.

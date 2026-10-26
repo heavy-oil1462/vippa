@@ -33,12 +33,22 @@ the packages in `firmware/packages/` with substitutions:
     knob it shows (`panels.display_source`), `pin_clk` and `pin_dio`
     its pins; substitution `display_time` (5 s) how long it stays lit.
     The writer lambda is ESPHome's way to draw on it, not a workaround.
+  - `lamp.yaml`: a pilot lamp, a GPIO output, no entity; var `pin`.
+- `lit.yaml`: included once on a panel with a display or a lamp.
+  Substitution `display_time` (5 s), how long either stays lit, and
+  script `panel_lit`, which every display and lamp runs to keep the
+  panel awake until the last of them is dark.
 - event packages that light a display, one include per entity and
   display, `FAMILY_EVENTS` in `scripts/firmware.py`:
   `display_on_turn.yaml` (an encoder's detents) and
   `display_on_binary.yaml` (a toggle, a pushbutton, an encoder's push).
   They add a trigger to the entity with `!extend`, so the component
   packages never know about displays.
+- event packages that light a lamp, one include per lamp for the
+  control it follows (`panels.lamp_source`), `FOLLOW_EVENTS` in
+  `scripts/firmware.py`: `lamp_on_toggle.yaml` (lit after a flip to
+  on, dark after a flip to off) and `lamp_on_press.yaml` (a pushbutton
+  or an encoder's push).
 
 `esphome config` from the nixpkgs pin in `scripts/render_scad.py`
 validates each config; `ESPHOME=/path/to/esphome` overrides it. Any

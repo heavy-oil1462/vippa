@@ -9,8 +9,8 @@ description: Add a panel part to catalog/components.json or replace its placehol
 python3 scripts/panels.py                 # validates the catalog, then every panel
 ```
 
-Six families. `toggle`, `encoder`, `rotary` and `pushbutton` mount
-through the face (`FRONT_FIELDS` in scripts/panels.py); `display` lies
+Seven families. `toggle`, `encoder`, `rotary`, `pushbutton` and
+`lamp` mount through the face (`FRONT_FIELDS` in scripts/panels.py); `display` lies
 in the cavity behind a window through the face and is placed under
 `components` like them (ADR-0006); `module` (ESP32 board, battery)
 lies in the cavity and is placed under `internals` in a panel.
@@ -18,15 +18,16 @@ lies in the cavity and is placed under `internals` in a panel.
 In the catalog: `toggle_12mm`, `toggle_6mm` (toggle), `encoder_knob`
 (encoder with push and a knurled aluminium knob), `rotary_switch` (1
 pole 6 positions, bakelite pointer knob) and `pushbutton_16mm`
-(pushbutton) and `led_segment_4d` (display, 4 digits of 0.36 in on a
+(pushbutton), `pilot_lamp_12mm` (lamp, chrome bezel indicator for a
+12 mm hole) and `led_segment_4d` (display, 4 digits of 0.36 in on a
 TM1637), all placeholders.
 
 ## Mount fields (every face mounted family, all required)
 
 Every face mounted family mounts the toggle's way: a round hole, a
-threaded bushing (a pushbutton's threaded body), a nut behind the face
-and the body behind that nut. In front sits a second nut, or a
-pushbutton's head.
+threaded bushing (a pushbutton's or lamp's threaded body), a nut
+behind the face and the body behind that nut. In front sits a second
+nut, or the head of a pushbutton or lamp.
 
 | Field | Meaning | How to get it |
 | --- | --- | --- |
@@ -49,6 +50,7 @@ pushbutton's head.
 | encoder | knob_d, knob_h | knob diameter and height |
 | rotary | knob_d, knob_h, positions | knob, and the number of switch positions (an integer, at least 2) |
 | pushbutton | cap_d, cap_h | head diameter and height above the face |
+| lamp | bezel_d, bezel_h, lens_d, lens_h, led_ma, colors | chrome bezel flange diameter and height; the lens diameter and its top's height above the face; LED current in mA at 3.3 V, at most LED_MAX_MA (20, what a pin drives); the lens colors it is sold in, some of LENS_COLORS (red, amber, green) |
 
 ## Display fields (all required but model)
 
@@ -85,7 +87,9 @@ bezel; panels.py checks it per panel.
   in cad/lib/panel.scad, and a firmware package in FAMILY_PACKAGES
   (firmware skill); one that takes several pins goes into FAMILY_PINS
   (ADR-0005), and one that only drives its pins into
-  OUTPUT_FAMILIES (ADR-0007). A new display needs its bezel in
+  OUTPUT_FAMILIES (ADR-0007). A new lens color goes into LENS_COLORS
+  in panels.py, LENS in panel.scad and the lamp materials (hero-render
+  skill). A new display needs its bezel in
   cad/bezels/; the stand-in draws every bezel with display_bezel() from
   the catalog values. A new module finish needs a branch in internal_stand_in()
   and FINISHES in panels.py. Keep-in-sync sweep for record fields:

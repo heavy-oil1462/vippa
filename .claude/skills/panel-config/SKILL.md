@@ -39,8 +39,9 @@ rows of three, a 22 mm board, the ESP32 board turned 90 beside them),
 dimmer (one encoder knob, walnut, a 22 mm board) and living_room (a row
 of a rotary switch, two pushbuttons and an encoder knob, the battery
 below the row and the ESP32 board above it) and thermostat (an LED
-segment display above an encoder knob, walnut). Start a new panel from
-the closest one.
+segment display above an encoder knob, walnut) and garage (two
+toggles with a pilot lamp above each and a pushbutton between them).
+Start a new panel from the closest one.
 
 ## Layout: start centered
 
@@ -90,6 +91,12 @@ why in its description.
   "<id>"` of an encoder or rotary switch, else the first one; a panel
   with a display needs one. Its pin is an object with some of clk and
   dio; left out, they come after the wake and ADC pins (ADR-0007).
+- A pilot lamp (pilot_lamp_12mm) goes under components like a
+  pushbutton and goes through the same checks. `"follows": "<id>"`
+  names the toggle, encoder (its push) or pushbutton it lights after;
+  a lamp needs one. `"color"` is one of its catalog colors (red, amber,
+  green), the first by default. Its pin comes after the wake and ADC
+  pins (ADR-0007). It is metal for the antenna keepout.
 - Knobs need room: keepout_d of a knob is the knob plus fingers, so
   knobs sit further apart than toggles, and a pushbutton between two
   knobs saves width.
@@ -130,6 +137,9 @@ why in its description.
   through the face or would stand out of the bezel; change face_t.
 - `a display shows one of the panel's knobs`: give the panel an encoder
   or rotary switch, or fix `"shows"`.
+- `a lamp follows one of the panel's toggles, encoders or
+  pushbuttons`: set `"follows"` to the id of one of them.
+- `color ... is not one of`: pick a color from the catalog entry.
 - `holder screws reach ... mm into a ... mm face`: the face is too thin
   for holder_screw_len; use shorter screws or a thicker face.
 - An assert from cad/lib/panel.scad during regen (bit radius, rail

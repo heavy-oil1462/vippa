@@ -22,14 +22,24 @@ measured or datasheet values.
 - Pushbuttons: momentary, metal, optionally illuminated. In the
   catalog: `pushbutton_16mm` (family `pushbutton`, 16 mm threaded
   body, flat head).
+- Pilot lamps: bezel indicators, LED inside, lit like a display: dark
+  until an event of the control the lamp follows, then lit for
+  `display_time` and dark again (the owner, #19). A lamp follows one
+  control on its panel, `"follows"` in the panel: a toggle's position
+  (lit after a flip to on, dark at once after a flip to off), an
+  encoder's push or a pushbutton (lit after a press). In the catalog:
+  `pilot_lamp_12mm` (family `lamp`, chrome bezel for a 12 mm hole,
+  domed lens in red, amber or green, `"color"` in the panel). It
+  mounts like a pushbutton, its bezel on the face and a nut behind,
+  and its body counts as metal for the antenna. Like a display, a
+  lamp is not a control: the toggle or button it follows is.
 
 Every catalog value is a placeholder from a typical datasheet
 (`measured: false`) until calipers confirm it. The face mounted
 families all mount the toggle's way, through a round hole: a threaded
 bushing, a nut behind the face and the body behind that, and in front
-a second nut, or for a pushbutton its head. So the same checks and the
-same punch template cover them all.
-- Pilot lamps: bezel indicators, LED inside.
+a second nut, or for a pushbutton or pilot lamp its head. So the
+same checks and the same punch template cover them all.
 - LED segment displays, for readouts: a knob's value, later a
   temperature. Dark until an event (a knob turns, a button is pressed,
   a toggle flips, later a new value from Home Assistant), then lit for
@@ -187,6 +197,12 @@ H2 awake for `display_time`, mostly inside the `awake_time` the wake
 takes anyway. The module's standby current, dark but powered, is not
 known yet (Open questions).
 
+A pilot lamp is the same sum at a lower current: `pilot_lamp_12mm`
+draws 10 mA lit (`led_ma`), the first row of the table, 0.014 mAh per
+event. It hangs on its pin without a driver, so the catalog allows at
+most 20 mA, an ESP32 pin's default drive strength in ESPHome. On
+garage, 20 flips a day cost at most 0.3 mAh, under the 20 uA sleep.
+
 The holder's screws go into the 4 mm face from behind. panel.scad
 asserts that holder_screw_len minus holder_flange_t stops face_skin
 short of the front; with the defaults a 2.2 x 4.5 screw reaches 2.5 mm
@@ -220,6 +236,12 @@ firmware/packages/: h2_base.yaml (the chip and deep sleep), zigbee.yaml
   the time and holds off deep sleep until it is dark again. A rotary
   switch does not light it: its first reading at every wake would.
   Its CLK and DIO pins come after the wake and ADC pins (ADR-0007).
+- A pilot lamp (lamp.yaml) is a GPIO output, no entity. The control it
+  follows lights it for `display_time`; a toggle flipped off darkens
+  it at once, so a lit lamp after a flip means on. Its pin comes after
+  the wake and ADC pins like a display's (ADR-0007). lit.yaml holds
+  `display_time` for displays and lamps alike and keeps the panel
+  awake until the last of them is dark.
 - Pins come from the panel's `"pin"` or a fixed order in
   scripts/panels.py, wake capable pins first (ADR-0004). An encoder
   takes three, its push first (ADR-0005).
@@ -263,14 +285,17 @@ firmware/packages/: h2_base.yaml (the chip and deep sleep), zigbee.yaml
     pins are not wake pins): a new position is reported at the next
     wake. On living_room an apply pushbutton beside the selector wakes
     the panel and carries the position with it.
-  - A Home Assistant value cannot reach a display yet: ESPHome's Zigbee
-    on the ESP32 has no number, switch or other cluster the
-    coordinator writes to (those are nRF52 only), so the H2 cannot
-    receive a temperature or any other value to show. A display shows
-    a knob on its own panel until it can, and a new value from Home
-    Assistant is no event yet.
-  - A display lights on events while the panel is awake only: a turn
-    or a press while it sleeps does not wake it, as above.
+  - A Home Assistant value cannot reach a display or a lamp yet:
+    ESPHome's Zigbee on the ESP32 has no number, switch or other
+    cluster the coordinator writes to (those are nRF52 only), so the H2
+    cannot receive a temperature, a door's real state or any other
+    value to show. A display shows a knob and a lamp follows a control
+    on its own panel until it can, and a new value from Home Assistant
+    is no event yet. So garage's door lamp shows where its toggle
+    stands, not whether the door has moved.
+  - A display or a lamp lights on events while the panel is awake
+    only: a turn, a flip or a press while it sleeps does not wake it,
+    as above.
 - Displays: the module's standby current with every segment dark is
   not measured. If it matters against the sleep budget, the module's
   supply needs switching off in deep sleep (a load switch on a pin),

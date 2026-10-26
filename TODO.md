@@ -51,8 +51,11 @@
 - [ ] Measure slip_fit with a test print of the bezel and the step plate
 - [ ] Measure the display module's standby current; switch its supply
       off in deep sleep if it matters (docs/CONCEPT.md, Open questions)
-- [ ] More families: pilot lamps (need a design decision first); meters
-      not now (docs/CONCEPT.md, Open questions)
+- [x] Pilot lamps: bezel indicator in the catalog (placeholder values),
+      lit after an event of the control it follows, firmware package,
+      the example panel garage; meters not now (docs/CONCEPT.md, Open
+      questions)
+- [ ] Measure the real pilot lamps and their LED current
 - [ ] Bill of materials generated from the panel and catalog
 
 ## Phase 3: firmware
@@ -66,6 +69,7 @@
       ZHA or Zigbee2MQTT
 - [ ] Wake on a flip: per pin wake levels and a sleepy end device on the
       H2, once ESPHome has them (docs/CONCEPT.md, Open questions)
-- [ ] Show a Home Assistant value on a display, once ESPHome's Zigbee
-      on the H2 can receive one (docs/CONCEPT.md, Open questions)
+- [ ] Show a Home Assistant value on a display or a lamp, once
+      ESPHome's Zigbee on the H2 can receive one (docs/CONCEPT.md, Open
+      questions)
 - [ ] Home Assistant integration examples

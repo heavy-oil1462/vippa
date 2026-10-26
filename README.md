@@ -6,14 +6,14 @@
 the hero-render skill); regenerate, never edit.*
 
 Rugged Home Assistant controls made from a solid piece of hardwood or
-brass, with real retro toggle switches, rotary knobs, pushbuttons and
-LED segment readouts set into it. An ESP32-H2 running ESPHome and two AA cells
+brass, with real retro toggle switches, rotary knobs, pushbuttons,
+pilot lamps and LED segment readouts set into it. An ESP32-H2 running ESPHome and two AA cells
 sit in a cavity behind the face; no cable. It talks Zigbee, so a flip
 reaches Home Assistant at once instead of after a wifi reconnect. Open hardware and firmware.
 
 Status: the first panel, an oak slab with three toggles, is designed
 but not yet built. Toggles, encoder knobs, rotary switches,
-pushbuttons and an LED segment display are in the catalog, all with
+pushbuttons, a pilot lamp and an LED segment display are in the catalog, all with
 placeholder dimensions until measured on real parts. The ESPHome firmware is generated from the
 panel and validated, but not yet flashed on a real ESP32-H2.
 
@@ -69,7 +69,7 @@ gets the next free pin in a fixed order (`PIN_ORDER` in
 takes three pins (push, A, B), and a rotary switch reads a resistor
 ladder on one ADC pin (docs/adr/0005-pins-for-knobs.md). A display
 takes two (CLK, DIO), after the pins that can wake the panel
-(docs/adr/0007-pins-for-displays.md).
+(docs/adr/0007-pins-for-displays.md), and so does a pilot lamp's one.
 
 A display (`led_segment_4d`) is placed under `components` like a knob.
 It shows through a window routed through the face from the back, with
@@ -78,6 +78,12 @@ from `cad/bezels/` on the face around it
 (docs/adr/0006-display-window-routed-through.md). It shows the value of
 a knob on the panel, `"shows"` or the first one, lit for a few seconds
 after a turn, a press or a flip.
+
+A pilot lamp (`pilot_lamp_12mm`) mounts like a pushbutton and follows
+a control on the panel, `"follows": "<id>"` of a toggle, an encoder
+(its push) or a pushbutton. It lights for the same few seconds after a
+flip to on or a press, then goes dark to spare the cells. `"color"`
+picks its lens: red, amber or green.
 
 Your tools go in `cad/design_params.scad`: center punch, guide bushing,
 router bit and print bed.
@@ -128,6 +134,14 @@ checks allow around them.
   ![The thermostat panel](media/panels/thermostat.png)
 
   ![The back of the thermostat panel](media/panels/thermostat_back.png)
+
+- `garage`: door and lights with pilot lamps. Oak, 178 x 127 x 27 mm,
+  two full size toggles with a pilot lamp above each, red for the door
+  and amber for the lights, and a pushbutton between them for the
+  vent. A flip to on lights the lamp above the toggle for a few
+  seconds.
+
+  ![The garage panel](media/panels/garage.png)
 
 The pictures come from `python3 scripts/render_hero.py --panels`.
 

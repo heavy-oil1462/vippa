@@ -129,8 +129,8 @@ def PBR(name):
         return principled(name, base_color=(0.9, 0.05, 0.02, 1), roughness=0.3,
                           emission_color=(1.0, 0.06, 0.02, 1), emission_strength=6.0)
     if name in LAMPS:  # a lit pilot lamp's lens: tinted glass, glowing from the LED
-        return principled(name, base_color=LAMPS[name], roughness=0.15, transmission_weight=0.4,
-                          emission_color=LAMPS[name], emission_strength=8.0)
+        return principled(name, base_color=LAMPS[name], roughness=0.15,
+                          emission_color=LAMPS[name], emission_strength=1.0)
     if name == "cell":
         return principled(name, base_color=(0.05, 0.10, 0.40, 1), roughness=0.25)
     raise ValueError(f"no PBR definition for material {name!r}")
