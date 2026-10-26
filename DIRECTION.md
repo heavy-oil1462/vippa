@@ -77,25 +77,28 @@ Individual decisions and their reasons go into ADRs in docs/adr.
 
 ## Priorities, in order
 
-1. Centered controls on the first panel: the toggle row centered, the
-   inline AA holder and the ESP32 board placed around it (owner on the
-   board, 2026-10-25).
-2. The first panel (`three_toggles`) buildable for real: measured
+1. Example panels, preconfigured and demoed: ready-made panels in
+   `panels/` with a README picture each (owner, 2026-10-26; #13).
+2. Firmware started: an ESPHome config generated from every panel for a
+   Zigbee sleepy end device on the ESP32-H2, validated in the gate
+   (owner, 2026-10-26; #12). Home Assistant as the target, ESPHome and
+   Zigbee first are ADR-0001 to 0003.
+3. The first panel (`three_toggles`) buildable for real: measured
    toggles in the catalog, measured tools in design_params, and the
    templates printed and tested on scrap.
-3. Settle the ESP32-H2 board and regulator after measuring sleep
+4. Settle the ESP32-H2 board and regulator after measuring sleep
    current and flip to light latency on a dev kit (target under 300 ms),
    before the hardware is final.
-4. Finish the panel as an object: board tray, back cover and rebate,
+5. Finish the panel as an object: board tray, back cover and rebate,
    toggle anti-rotation, wall and desk mounting.
-5. More component families: encoders, rotary switches, pushbuttons,
+6. More component families: encoders, rotary switches, pushbuttons,
    pilot lamps, meters.
-6. Bill of materials generated from the panel and catalog.
-7. Firmware: ESPHome config generated from the panel JSON.
+7. Bill of materials generated from the panel and catalog.
 
 ## Not now
 
-- Wifi, Thread or Matter on the panel; Zigbee is decided.
+- Wifi, Thread or Matter on the panel; Zigbee is the first radio
+  (ADR-0003).
 - Committed STLs and byte comparison in `--check`, until the design is
   accepted.
 - Boards larger than the print bed, and brass faces, until their open
