@@ -55,8 +55,13 @@ why in its description.
 - A module with an antenna needs antenna_keepout mm past its antenna end
   free of metal (switch bodies, battery). Put the antenna end toward a
   cavity wall; wood in the keepout is fine.
-- id is the component's name; the firmware will use it later, so keep
-  it stable and meaningful.
+- id is the component's name and its Home Assistant entity name in the
+  generated firmware, so keep it stable and meaningful.
+- pin (optional) is the component's ESP32-H2 GPIO, one of PINS in
+  panels.py, each used once. Without it the component takes the next
+  free pin in PIN_ORDER (wake capable 10 to 14 first). panels.py prints
+  `[info] ... cannot wake` for a toggle outside 10 to 14. See the
+  firmware skill.
 
 ## Procedure
 

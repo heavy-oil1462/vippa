@@ -42,7 +42,14 @@
 
 ## Phase 3: firmware
 
-- [ ] Adopt esphome-skills (validation gate, simulator)
-- [ ] ESPHome config generated from the panel JSON
+- [x] Adopt esphome-skills: packages plus substitutions, the esphome
+      config gate in regen_all.py, the firmware skill (ADR-0002; the
+      simulator and MQTT contract do not apply to a Zigbee H2)
+- [x] ESPHome config generated from the panel JSON, Zigbee on the
+      ESP32-H2, a pin per component (ADR-0003, ADR-0004)
+- [ ] Flash a generated config on an ESP32-H2 dev kit and pair it with
+      ZHA or Zigbee2MQTT
+- [ ] Wake on a flip: per pin wake levels and a sleepy end device on the
+      H2, once ESPHome has them (docs/CONCEPT.md, Open questions)
 - [ ] Analog meter driver with calibration
 - [ ] Home Assistant integration examples
