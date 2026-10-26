@@ -13,7 +13,8 @@ reaches Home Assistant at once instead of after a wifi reconnect. Open hardware 
 
 Status: the first panel, an oak slab with three toggles, is designed
 but not yet built. The toggle dimensions in the catalog are placeholders
-until measured on real parts. Firmware follows the hardware.
+until measured on real parts. The ESPHome firmware is generated from the
+panel and validated, but not yet flashed on a real ESP32-H2.
 
 ## Made with hand tools
 
@@ -40,9 +41,9 @@ A panel is a small JSON file in `panels/`. This is the first one:
   "board": {"w": 190, "h": 107, "t": 27, "chamfer": 2, "material": "oak"},
   "cavity": {"face_t": 4, "rim": 15, "r": 8},
   "components": [
-    {"id": "left", "type": "toggle_12mm", "x": 45, "y": 53.5},
-    {"id": "middle", "type": "toggle_12mm", "x": 95, "y": 53.5},
-    {"id": "right", "type": "toggle_12mm", "x": 145, "y": 53.5}
+    {"id": "left", "type": "toggle_12mm", "x": 45, "y": 53.5, "pin": 10},
+    {"id": "middle", "type": "toggle_12mm", "x": 95, "y": 53.5, "pin": 11},
+    {"id": "right", "type": "toggle_12mm", "x": 145, "y": 53.5, "pin": 12}
   ],
   "internals": [
     {"id": "battery", "type": "battery_2aa_holder", "x": 95, "y": 30},
@@ -60,6 +61,10 @@ deep and wide enough for the switch bodies, board and battery, nothing
 behind the face crowding anything else, no metal in front of the
 radio antenna, neighbours far enough apart, the templates within the
 print bed and the router bit able to make the cavity corners.
+
+A component may name its ESP32-H2 GPIO with `"pin"`; without one it
+gets the next free pin in a fixed order (`PIN_ORDER` in
+`scripts/panels.py`), so wire the toggles in that order.
 
 Your tools go in `cad/design_params.scad`: center punch, guide bushing,
 router bit and print bed.
@@ -81,9 +86,10 @@ python3 scripts/render_hero.py         # the README images (Blender, minutes)
 ```
 
 `build/panels/<name>/` gets `punch_template.stl`, `router_template.stl`,
-quick preview renders and `<name>.scad`, which opens the panel in
-OpenSCAD. OpenSCAD and Blender come from nix; without nix, point
-`OPENSCAD` and `BLENDER` at your own binaries. The scripts are standard
+quick preview renders, `<name>.scad`, which opens the panel in
+OpenSCAD, and `<name>.yaml`, the panel's ESPHome config (see the
+firmware skill). OpenSCAD, Blender and ESPHome come from nix; without
+nix, point `OPENSCAD`, `BLENDER` and `ESPHOME` at your own binaries. The scripts are standard
 library Python.
 
 ## License

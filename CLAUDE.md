@@ -45,13 +45,17 @@ switch.
   (docs/CONCEPT.md, Radio). 2.4 GHz goes through the wood but not
   through metal: nothing metal in a module's antenna keepout, no metal
   back or face without an external antenna.
-- Firmware comes later and is built on esphome-skills
-  (github.com/heavy-oil1462/esphome-skills), the same way as fika and
-  frodas. Hardware first.
+- Firmware is ESPHome, generated from the panel JSON and built on
+  esphome-skills (github.com/heavy-oil1462/esphome-skills) the way fika
+  and frodas are: packages plus substitutions, no custom C++ (ADR-0002).
+  It only reads the panel and catalog; nothing on the CAD side reads
+  the firmware. Hardware first.
 
 ## Layout
 
-- `panels/<name>.json`: one panel. Validated by `scripts/panels.py`.
+- `panels/<name>.json`: one panel. Validated by `scripts/panels.py`,
+  including the optional `"pin"` per component (ESP32-H2 GPIO; missing
+  pins follow `PIN_ORDER`).
 - `catalog/components.json`: panel hardware dimensions.
 - `cad/design_params.scad`: tools, printer and fits shared by every
   panel. `check_params.py` fails the build if any file re-declares one
@@ -65,6 +69,11 @@ switch.
   holder). A catalog module with a `model` field points at one, and
   regen_all.py fails if the STL's bounding box differs from the catalog
   size.
+- `firmware/packages/`: hand written ESPHome packages: `h2_base.yaml`
+  (chip, deep sleep, `poll_period`), `zigbee.yaml` (the radio) and one
+  per component family (`toggle.yaml`). `scripts/firmware.py` includes
+  them with substitutions into `build/panels/<name>/<name>.yaml`.
+- `docs/adr/`: architecture decision records, index in its README.
 - `scripts/`: Python tools, stdlib only. `hero_scene.py` runs inside
   Blender.
 - `media/`: the README renders, committed build products of
@@ -75,14 +84,18 @@ switch.
 ## Tools and workflow
 
 Everything runs headless through nix (`nix build` only, never download
-binaries). OpenSCAD and Blender come from the nixpkgs pin in
-`render_scad.py`. No-nix escape hatches: `OPENSCAD=` and `BLENDER=`.
+binaries). OpenSCAD, Blender and ESPHome come from the nixpkgs pin in
+`render_scad.py`. No-nix escape hatches: `OPENSCAD=`, `BLENDER=` and
+`ESPHOME=`.
 
 - `python3 scripts/regen_all.py`: the single entry point. Gates, then
-  every model and every panel into `build/`. `--check` is the read-only
-  gate (the verify skill and CI).
+  every model and every panel into `build/`, the ESPHome config
+  included and checked with `esphome config`. `--check` is the
+  read-only gate (the verify skill and CI).
 - `python3 scripts/panels.py [name]`: validate panel configs and the
   catalog.
+- `python3 scripts/firmware.py [--check] [name]`: write (and validate)
+  the ESPHome configs only.
 - `python3 scripts/render_hero.py [shot] [--draft]`: photoreal README
   images into `media/` (Cycles, minutes; not part of verify).
 - `python3 scripts/render_scad.py <file.scad> <out.png|stl|dxf> [args]`:
@@ -91,7 +104,8 @@ binaries). OpenSCAD and Blender come from the nixpkgs pin in
 Skills in `.claude/skills/`: verify (commit gate), regen-outputs
 (rebuild), openscad-review (render and look), panel-config (add or
 change a panel), component-catalog (add or measure a part),
-hero-render (README images). Anything done twice becomes a skill or a
+hero-render (README images), firmware (generate and validate the
+ESPHome config). Anything done twice becomes a skill or a
 script; extend regen_all.py rather than adding a sibling pipeline.
 
 ## Prototyping phase

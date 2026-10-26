@@ -148,8 +148,44 @@ asserts that holder_screw_len minus holder_flange_t stops face_skin
 short of the front; with the defaults a 2.2 x 4.5 screw reaches 2.5 mm
 into the oak. Drill the pilot holes with a depth stop.
 
+## Firmware
+
+ESPHome (ADR-0002), generated from the panel JSON by scripts/firmware.py
+into build/panels/<name>/<name>.yaml and checked with `esphome config`
+by regen_all.py. The config only includes the packages in
+firmware/packages/: h2_base.yaml (the chip and deep sleep), zigbee.yaml
+(the radio, ADR-0003) and one package per component family.
+
+- Each toggle is a Zigbee binary input named after its component id,
+  reported on every change (`report: force`), internal pull resistors
+  off for the ON-ON wiring above.
+- Pins come from the panel's `"pin"` or a fixed order in
+  scripts/panels.py, wake capable pins first (ADR-0004).
+- The panel deep sleeps, wakes every `poll_period`, rejoins its parent,
+  reports and sleeps again after `awake_time`.
+
 ## Open questions
 
+- Firmware gaps in ESPHome 2026.5.1 on the ESP32-H2 (the nixpkgs pin),
+  not worked around with custom C++ (ADR-0002):
+  - No sleepy end device: ESPHome's `sleepy` option is nRF52 only. The
+    H2 deep sleeps and rejoins its parent after every wake instead of
+    staying joined and polling. The cost in wake time and current has
+    to be measured on the dev kit.
+  - No wake level per pin: deep sleep on the H2 wakes through ext1 with
+    one level for every pin, and ESPHome's single `wakeup_pin` with
+    INVERT_WAKEUP is not implemented on the H2. So the firmware cannot
+    arm each toggle for the opposite of its level, and wakes on the
+    timer only, an interim default in h2_base.yaml and not a decision:
+    a flip waits up to `poll_period`. ext1 is left out because with
+    one level for all pins, a toggle left at that level would wake the
+    panel again at once and drain the cells. Options:
+    wait for ESPHome, or add per pin ext1 levels to ESPHome upstream
+    (ESP-IDF supports them on the H2).
+  - No trigger for an acknowledged report: the panel sleeps after
+    `awake_time` instead of as soon as the parent acknowledges.
+  - Only five H2 GPIOs can wake it (10 to 14), so at most five
+    toggles per panel can wake the panel once per pin wake works.
 - Charging: none for alkaline cells, or a board with a charger for
   rechargeable cells.
 - Back of the panel: a cover plate in a rebate, or a screwed panel.

@@ -20,6 +20,8 @@ What it checks, in order:
 3. `panels.py`: the catalog and every panel config are valid
 4. every model under cad/ (lib excluded) and every panel's templates and
    previews render warning-free with manifold status NoError
+5. every panel's generated ESPHome config passes `esphome config`
+   with no warnings (the firmware skill)
 
 Prototyping phase: there is no byte comparison against committed STLs
 yet, because build/ is not committed while the models are iterated by eye.
@@ -41,6 +43,7 @@ See CLAUDE.md for the plan once models settle.
   source), then run panels.py: the layout may no longer fit.
 - `[FAIL]` with warnings: read them. An `assert` message means the knobs
   ask for impossible geometry; fix the knob, never the assert.
+- `[FAIL] ... (esphome config)`: see the firmware skill.
 - `[FAIL]` with a geometry status: the model is not cleanly manifold,
   usually coincident faces in a `difference()`. Extend the cutter by eps
   past both surfaces. See the openscad-review skill.

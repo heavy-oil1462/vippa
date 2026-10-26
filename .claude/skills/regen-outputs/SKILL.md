@@ -17,7 +17,8 @@ Pipeline:
 4. every model in cad/ (lib excluded) -> `build/<category>/<name>.stl`
 5. every panels/<name>.json -> `build/panels/<name>/`: the wrapper
    `<name>.scad`, `punch_template.stl`, `router_template.stl`,
-   `front.png`, `back.png`
+   `front.png`, `back.png`, and `<name>.yaml`, the ESPHome config,
+   validated with `esphome config` (the firmware skill)
 
 ## Rules
 
