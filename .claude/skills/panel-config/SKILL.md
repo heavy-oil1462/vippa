@@ -15,12 +15,31 @@ python3 scripts/regen_all.py <name>       # templates and previews into build/pa
 ```json
 {
   "description": "what this panel is",
-  "board": {"w": 180, "h": 90, "t": 27, "chamfer": 2, "material": "oak"},
-  "cavity": {"face_t": 4, "rim": 18, "r": 8},
-  "components": [{"id": "left", "type": "toggle_12mm", "x": 45, "y": 65}],
-  "internals": [{"id": "esp", "type": "esp32_devboard", "x": 130, "y": 32, "rot": 0}]
+  "board": {"w": 190, "h": 107, "t": 27, "chamfer": 2, "material": "oak"},
+  "cavity": {"face_t": 4, "rim": 15, "r": 8},
+  "components": [
+    {"id": "left", "type": "toggle_12mm", "x": 45, "y": 53.5},
+    {"id": "middle", "type": "toggle_12mm", "x": 95, "y": 53.5},
+    {"id": "right", "type": "toggle_12mm", "x": 145, "y": 53.5}
+  ],
+  "internals": [
+    {"id": "battery", "type": "battery_2aa_holder", "x": 95, "y": 30},
+    {"id": "esp", "type": "esp32_devboard", "x": 135, "y": 77, "rot": 0}
+  ]
 }
 ```
+
+## Layout: start centered
+
+A new panel starts from a centered row: put the components first, with
+the bounding box of their x, y on the board center (w/2, h/2). Then
+place the internals in the bands of cavity around the row, the inline
+battery holder on one side and the ESP32 board on the other, and size
+the board as small as the checks allow. Grow the board to make room;
+never move the row off center for the internals. panels.py prints
+`[info] <name>: components center ... off the board center` when the
+row is more than 1 mm off; a panel that breaks the rule on purpose says
+why in its description.
 
 - Millimetres. x, y are hole centers measured from the reference corner:
   bottom left seen from the front.

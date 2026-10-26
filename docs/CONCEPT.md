@@ -49,6 +49,11 @@ measured or datasheet values.
 - The cavity is routed by hand with a guide bushing against a printed
   template, not drilled or CNC cut. The template extends router_margin
   past the board on every side so the router base stays supported.
+- Controls are centered on the face: the bounding box of the components
+  sits on the board's center lines, unless the panel says why not. The
+  internals (battery holder, ESP32 board) find room in the cavity around
+  the controls, and the board grows to fit them, not the other way
+  round. scripts/panels.py reports an off center panel as [info].
 - Panel configs are JSON (stdlib, validated before rendering, readable
   by the firmware generator later).
 
@@ -95,8 +100,12 @@ The antenna works at 2.4 GHz like wifi, through the wood:
 
 ## Power
 
-Battery powered, two AA cells in a printed holder screwed to the cavity
-floor. The ESP32-H2 sleeps as a Zigbee sleepy end device, polling its
+Battery powered, two AA cells end to end in a printed inline holder
+screwed to the cavity floor, never side by side or stacked. In line the
+cells are in series by touching nose to tail, so the holder needs bought
+contacts only at its two ends: a spring for the negative end and a flat
+plate for the positive. The long, narrow holder fits the band of cavity
+beside a centered row of controls. The ESP32-H2 sleeps as a Zigbee sleepy end device, polling its
 parent now and then, and wakes at once when a toggle moves.
 
 Budget for two alkaline AA (about 2500 mAh, of which perhaps 2000 mAh

@@ -25,6 +25,10 @@ cavity corner, are asserts in cad/lib/panel.scad):
 
 Catalog entries with "measured": false are reported as [info]: their
 values are placeholders until someone puts calipers on the real part.
+So is a panel whose components are not centered on the face: the
+bounding box center of their positions more than CENTER_TOLERANCE off
+the board center. Controls are centered unless the panel says why not,
+so this is not a failure, only kept visible.
 
 Usage:
     scripts/panels.py              # validate every panel, the gate
@@ -67,6 +71,7 @@ FINISHES = {"pcb", "aa_holder"}
 COMPONENT_RECORD = ["hole_d", "bushing_d", "bushing_len", "nut_af", "nut_t",
                     "lever_d", "lever_len"]
 INTERNAL_CLEARANCE = 2.0  # mm around internals, for wires and fingers
+CENTER_TOLERANCE = 1.0  # mm the components' center may sit off the board center
 PARTS = ["panel", "punch", "router", "hero", "build"]
 
 
@@ -247,6 +252,20 @@ def validate(panel, catalog):
     return errors
 
 
+def center_offset(panel):
+    """(dx, dy) from the board center to the bounding box center of the
+    component positions, or None when there is nothing to measure."""
+    try:
+        w, h = panel["board"]["w"], panel["board"]["h"]
+        xs = [c["x"] for c in panel["components"]]
+        ys = [c["y"] for c in panel["components"]]
+    except (KeyError, TypeError):
+        return None
+    if not xs or not all(map(is_num, xs + ys + [w, h])):
+        return None
+    return ((min(xs) + max(xs)) / 2 - w / 2, (min(ys) + max(ys)) / 2 - h / 2)
+
+
 def scad_value(v):
     if isinstance(v, str):
         return json.dumps(v)
@@ -312,6 +331,10 @@ def main(argv):
         print(f"[{'FAIL' if problems else 'ok'}] panels/{name}.json")
         for p in problems:
             print(f"        {p}")
+        off = center_offset(panel)
+        if off and max(map(abs, off)) > CENTER_TOLERANCE:
+            print(f"[info]  {name}: components center {off[0]:+g}, {off[1]:+g} mm (x, y)"
+                  " off the board center")
         used = panel.get("components", []) + panel.get("internals", [])
         for kind in sorted({c.get("type") for c in used}):
             if kind in catalog and not catalog[kind]["measured"]:
