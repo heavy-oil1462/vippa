@@ -1,0 +1,12 @@
+{
+  "description": "Bedside or desk lamp switch: a walnut slab with one full size toggle centered, the ESP32 board beside it and the inline AA holder below",
+  "board": {"w": 175, "h": 93, "t": 27, "chamfer": 2, "material": "walnut"},
+  "cavity": {"face_t": 4, "rim": 15, "r": 8},
+  "components": [
+    {"id": "lamp", "type": "toggle_12mm", "x": 87.5, "y": 46.5}
+  ],
+  "internals": [
+    {"id": "battery", "type": "battery_2aa_holder", "x": 87.5, "y": 26.5},
+    {"id": "esp", "type": "esp32_devboard", "x": 128, "y": 53}
+  ]
+}

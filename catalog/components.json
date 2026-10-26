@@ -19,6 +19,26 @@
     "measured": false,
     "source": "PLACEHOLDER: typical values for the 15/32 in bushing class, not taken from a real part. Replace with calipers on the toggles you mount."
   },
+  "toggle_6mm": {
+    "description": "Miniature bat handle toggle, 1/4-40 UNS threaded bushing (6 mm class)",
+    "family": "toggle",
+    "hole_d": 6.8,
+    "bushing_d": 6.3,
+    "bushing_len": 8.9,
+    "max_panel_t": 4.0,
+    "nut_af": 7.9,
+    "nut_t": 2.0,
+    "lever_d": 3.0,
+    "lever_len": 10.0,
+    "body": [
+      8.4,
+      13.0,
+      15.0
+    ],
+    "keepout_d": 22,
+    "measured": false,
+    "source": "PLACEHOLDER: typical datasheet values for a miniature toggle with a 1/4-40 bushing 8.9 mm (0.35 in) long, in the style of the C&K 7000 series, not taken from a real part. max_panel_t is the bushing less two nuts and a lock washer; keepout_d is judgement, room for a fingertip and the 5/16 in nut wrench. Replace with calipers on the toggles you mount."
+  },
   "esp32_devboard": {
     "description": "ESP32-H2 board (Zigbee, no wifi) with an onboard PCB antenna at one end and a USB connector at the other",
     "family": "module",
