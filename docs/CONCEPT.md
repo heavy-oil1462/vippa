@@ -176,7 +176,10 @@ firmware/packages/: h2_base.yaml (the chip and deep sleep), zigbee.yaml
     one level for every pin, and ESPHome's single `wakeup_pin` with
     INVERT_WAKEUP is not implemented on the H2. So the firmware cannot
     arm each toggle for the opposite of its level, and wakes on the
-    timer only; a flip waits up to `poll_period` (ADR-0004). Options:
+    timer only, an interim default in h2_base.yaml and not a decision:
+    a flip waits up to `poll_period`. ext1 is left out because with
+    one level for all pins, a toggle left at that level would wake the
+    panel again at once and drain the cells. Options:
     wait for ESPHome, or add per pin ext1 levels to ESPHome upstream
     (ESP-IDF supports them on the H2).
   - No trigger for an acknowledged report: the panel sleeps after
