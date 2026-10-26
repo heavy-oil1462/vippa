@@ -29,6 +29,16 @@ the packages in `firmware/packages/` with substitutions:
     binary input `<name>_push`; vars `pin_a`, `pin_b`, `pin_push`.
   - `rotary.yaml`: analog input, the position, from a resistor ladder
     on an ADC pin; var `positions` from the catalog.
+  - `display.yaml`: a TM1637 display, no entity. Var `value` is the
+    knob it shows (`panels.display_source`), `pin_clk` and `pin_dio`
+    its pins; substitution `display_time` (5 s) how long it stays lit.
+    The writer lambda is ESPHome's way to draw on it, not a workaround.
+- event packages that light a display, one include per entity and
+  display, `FAMILY_EVENTS` in `scripts/firmware.py`:
+  `display_on_turn.yaml` (an encoder's detents) and
+  `display_on_binary.yaml` (a toggle, a pushbutton, an encoder's push).
+  They add a trigger to the entity with `!extend`, so the component
+  packages never know about displays.
 
 `esphome config` from the nixpkgs pin in `scripts/render_scad.py`
 validates each config; `ESPHOME=/path/to/esphome` overrides it. Any

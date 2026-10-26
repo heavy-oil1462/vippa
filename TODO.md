@@ -44,7 +44,15 @@
       (placeholder values), stand-ins, firmware packages and the example
       panels dimmer and living_room
 - [ ] Measure the real encoders, rotary switches, knobs and pushbuttons
-- [ ] More families: pilot lamps, meters (need a design decision first)
+- [x] LED segment displays: window routed through the face with a
+      step plate in the router template, printed bezel, firmware lit
+      after an event, the example panel thermostat (ADR-0006, ADR-0007)
+- [ ] Measure the real display module and set its catalog values
+- [ ] Measure slip_fit with a test print of the bezel and the step plate
+- [ ] Measure the display module's standby current; switch its supply
+      off in deep sleep if it matters (docs/CONCEPT.md, Open questions)
+- [ ] More families: pilot lamps (need a design decision first); meters
+      not now (docs/CONCEPT.md, Open questions)
 - [ ] Bill of materials generated from the panel and catalog
 
 ## Phase 3: firmware
@@ -58,5 +66,6 @@
       ZHA or Zigbee2MQTT
 - [ ] Wake on a flip: per pin wake levels and a sleepy end device on the
       H2, once ESPHome has them (docs/CONCEPT.md, Open questions)
-- [ ] Analog meter driver with calibration
+- [ ] Show a Home Assistant value on a display, once ESPHome's Zigbee
+      on the H2 can receive one (docs/CONCEPT.md, Open questions)
 - [ ] Home Assistant integration examples

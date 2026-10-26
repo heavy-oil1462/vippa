@@ -17,7 +17,8 @@ The plain shots show HERO_PANEL (three_toggles) as media/<shot>.png.
 `--panel NAME` picks another panel and then needs `--out`, so it never
 overwrites the README shots. `--panels` renders PANEL_SHOT of each
 panel as media/panels/<name>.png, the pictures in the README's Example
-panels section.
+panels section. A panel in `PANEL_EXTRA_SHOTS` gets those shots too,
+as media/panels/<name>_<shot>.png (the thermostat's back).
 
 How it works: panels.py writes the wrapper for the panel, OpenSCAD
 exports the shot's part (`hero` or `build` in cad/lib/panel.scad) as a

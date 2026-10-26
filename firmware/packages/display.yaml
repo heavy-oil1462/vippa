@@ -6,7 +6,9 @@
 # Wiring: the module's VCC and GND to the 3.3 V rail, CLK and DIO each
 # to its pin. The module's own pull ups hold both lines high; ESPHome
 # releases them between frames, so no current flows through them. Lit,
-# the module draws 10 to 80 mA (docs/CONCEPT.md, Power).
+# the module draws 10 to 80 mA (docs/CONCEPT.md, Power); dark, only its
+# driver's standby current, not measured yet (docs/CONCEPT.md, Open
+# questions).
 #
 # What it shows: the sensor named by var value, an encoder's level or a
 # rotary switch's position, right aligned. ESPHome's Zigbee on the

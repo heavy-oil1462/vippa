@@ -117,6 +117,9 @@ def PBR(name):
                           metallic=1.0, roughness=0.32)
     if name == "bakelite":  # knob: near black, a warm brown in the highlights
         return principled(name, base_color=(0.018, 0.010, 0.007, 1), roughness=0.22)
+    if name == "led":  # a lit segment: red, glowing
+        return principled(name, base_color=(0.9, 0.05, 0.02, 1), roughness=0.3,
+                          emission_color=(1.0, 0.06, 0.02, 1), emission_strength=6.0)
     if name == "cell":
         return principled(name, base_color=(0.05, 0.10, 0.40, 1), roughness=0.25)
     raise ValueError(f"no PBR definition for material {name!r}")

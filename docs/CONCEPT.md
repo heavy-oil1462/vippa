@@ -30,8 +30,17 @@ bushing, a nut behind the face and the body behind that, and in front
 a second nut, or for a pushbutton its head. So the same checks and the
 same punch template cover them all.
 - Pilot lamps: bezel indicators, LED inside.
-- Analog meters: moving-coil panel meters driven by ESP32 PWM, with
-  printed custom scales (temperature, power, anything HA knows).
+- LED segment displays, for readouts: a knob's value, later a
+  temperature. Dark until an event (a knob turns, a button is pressed,
+  a toggle flips, later a new value from Home Assistant), then lit for
+  `display_time` (5 s by default) and dark again, so the display is off
+  whenever the panel sleeps. The module lies in the cavity behind a
+  window routed through the face, its LED block reaching through into
+  a printed bezel on the face that covers the window's edges and
+  corners (ADR-0006). In the catalog: `led_segment_4d` (family
+  `display`, 4 digits of 0.36 in on a TM1637 driver), with its bezel in
+  `cad/bezels/`. A display is not a control: a knob beside it is, so
+  the panel's feedback stays mechanical.
 
 ## How a panel is made
 
@@ -47,7 +56,11 @@ same punch template cover them all.
    back, fences on the same two edges, and route the cavity with the
    guide bushing against the template. The template is engraved with
    the bushing, bit and depth it was made for.
-6. Fit the hardware, wire it to the ESP32 in the cavity, close the back.
+6. A panel with a display: drop the router template's step plate into
+   its opening and route each window through the face, then chisel the
+   window's round corners square to the four punch marks.
+7. Fit the hardware, glue each display's bezel over its window, wire it
+   all to the ESP32 in the cavity, close the back.
 
 ## Decisions
 
@@ -155,6 +168,25 @@ first firmware task. Things that decide it:
   each sleep. The chip variant decides how easy that is; settle it with
   the firmware.
 
+A display draws nothing while it is dark and the panel sleeps, and 10
+to 80 mA while it is lit, depending on how many segments are on and
+its intensity. Its budget is the lit current times the time it stays
+lit per event, times the events per day. With `display_time` 5 s:
+
+| Lit current | Per event | 20 events a day | 100 events a day |
+| --- | --- | --- | --- |
+| 10 mA | 0.014 mAh | 0.28 mAh | 1.4 mAh |
+| 30 mA | 0.042 mAh | 0.83 mAh | 4.2 mAh |
+| 80 mA | 0.11 mAh | 2.2 mAh | 11 mAh |
+
+At 30 mA and 20 events a day the display costs more than a 20 uA sleep
+(0.5 mAh a day): the two AA last about 4 years instead of being
+limited by shelf life. At 80 mA and 100 events, about 6 months. The
+firmware sets a middle intensity (4 of 7). Each event also keeps the
+H2 awake for `display_time`, mostly inside the `awake_time` the wake
+takes anyway. The module's standby current, dark but powered, is not
+known yet (Open questions).
+
 The holder's screws go into the 4 mm face from behind. panel.scad
 asserts that holder_screw_len minus holder_flange_t stops face_skin
 short of the front; with the defaults a 2.2 x 4.5 screw reaches 2.5 mm
@@ -181,6 +213,13 @@ firmware/packages/: h2_base.yaml (the chip and deep sleep), zigbee.yaml
   resistor ladder on one ADC pin (ADR-0005), about 1 uA.
 - Home Assistant turns the numbers into brightness, volume or a scene
   with an automation; nothing on the panel knows the lights.
+- A display (display.yaml, a TM1637 driver) shows a knob's value,
+  right aligned: an encoder's level or a rotary switch's position,
+  `"shows"` in the panel or the first knob. A turn of an encoder, a
+  flip or a press lights it for `display_time`; each event restarts
+  the time and holds off deep sleep until it is dark again. A rotary
+  switch does not light it: its first reading at every wake would.
+  Its CLK and DIO pins come after the wake and ADC pins (ADR-0007).
 - Pins come from the panel's `"pin"` or a fixed order in
   scripts/panels.py, wake capable pins first (ADR-0004). An encoder
   takes three, its push first (ADR-0005).
@@ -224,6 +263,25 @@ firmware/packages/: h2_base.yaml (the chip and deep sleep), zigbee.yaml
     pins are not wake pins): a new position is reported at the next
     wake. On living_room an apply pushbutton beside the selector wakes
     the panel and carries the position with it.
+  - A Home Assistant value cannot reach a display yet: ESPHome's Zigbee
+    on the ESP32 has no number, switch or other cluster the
+    coordinator writes to (those are nRF52 only), so the H2 cannot
+    receive a temperature or any other value to show. A display shows
+    a knob on its own panel until it can, and a new value from Home
+    Assistant is no event yet.
+  - A display lights on events while the panel is awake only: a turn
+    or a press while it sleeps does not wake it, as above.
+- Displays: the module's standby current with every segment dark is
+  not measured. If it matters against the sleep budget, the module's
+  supply needs switching off in deep sleep (a load switch on a pin),
+  which is hardware to choose. Also how the module is held: the bezel
+  grips its LED block and the board rests against the face behind the
+  window; a screw or a spot of glue may be needed in practice.
+- Analog meters, not now: a moving-coil meter shows a value only while
+  current flows through it, so it draws power the whole time it reads,
+  which a panel on two AA cells cannot afford. LED segment displays,
+  lit for a while after an event, are the readout for now (the owner,
+  on #19, 2026-10-26).
 - Charging: none for alkaline cells, or a board with a charger for
   rechargeable cells.
 - Back of the panel: a cover plate in a rebate, or a screwed panel.

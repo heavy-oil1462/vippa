@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""Cases for the layout checks in scripts/panels.py: each check has a
+"""Cases for the layout checks in scripts/panels.py: a check has a
 panel or catalog entry that fails it, so a check that stops working
-fails the gate. Run by regen_all.py with the other gates.
+fails the gate. The display checks have theirs; a new check gets one
+here. Run by regen_all.py with the other gates.
 
 Every case starts from panels/thermostat.json, which passes, and breaks
 one rule. Standard library unittest only.

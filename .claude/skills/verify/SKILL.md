@@ -17,7 +17,9 @@ What it checks, in order:
 
 1. `check_params.py`: no file shadows a design_params.scad name
 2. `check_style.py`: no em dashes, emoji or bold in tracked text files
-3. `panels.py`: the catalog and every panel config are valid
+3. `panels.py`: the catalog and every panel config are valid;
+   `check_panel_rules.py`: each display check still fails a panel
+   broken for it
 4. every model under cad/ (lib excluded) and every panel's templates and
    previews render warning-free with manifold status NoError
 5. every panel's generated ESPHome config passes `esphome config`

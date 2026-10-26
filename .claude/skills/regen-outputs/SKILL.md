@@ -13,10 +13,12 @@ python3 scripts/regen_all.py three_toggles         # just these models or panels
 Pipeline:
 1. `scripts/check_params.py`: no file may shadow a design_params.scad name
 2. `scripts/check_style.py`: writing rules across tracked text files
-3. `scripts/panels.py`: catalog and every panel config are valid
+3. `scripts/panels.py`: catalog and every panel config are valid, and
+   `scripts/check_panel_rules.py`: each display check fails its case
 4. every model in cad/ (lib excluded) -> `build/<category>/<name>.stl`
 5. every panels/<name>.json -> `build/panels/<name>/`: the wrapper
    `<name>.scad`, `punch_template.stl`, `router_template.stl`,
+   `router_step.stl` (a panel with a display only, ADR-0006),
    `front.png`, `back.png`, and `<name>.yaml`, the ESPHome config,
    validated with `esphome config` (the firmware skill)
 
