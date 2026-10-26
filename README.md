@@ -88,6 +88,10 @@ picks its lens: red, amber or green.
 Your tools go in `cad/design_params.scad`: center punch, guide bushing,
 router bit and print bed.
 
+Each panel's bill of materials, what to buy, print and cut, the tools
+and the wiring, is written to `build/panels/<name>/bom.md` by
+`python3 scripts/regen_all.py`.
+
 ## Example panels
 
 Ready to print and build as they are, each in `panels/`. Every one

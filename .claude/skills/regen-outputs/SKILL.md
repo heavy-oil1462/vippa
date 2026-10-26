@@ -19,8 +19,10 @@ Pipeline:
 5. every panels/<name>.json -> `build/panels/<name>/`: the wrapper
    `<name>.scad`, `punch_template.stl`, `router_template.stl`,
    `router_step.stl` (a panel with a display only, ADR-0006),
-   `front.png`, `back.png`, and `<name>.yaml`, the ESPHome config,
-   validated with `esphome config` (the firmware skill)
+   `front.png`, `back.png`, `<name>.yaml`, the ESPHome config,
+   validated with `esphome config` (the firmware skill), and `bom.md`,
+   the bill of materials (`scripts/bom.py`: buy, print, wood, tools,
+   wiring, not measured), whose Wiring pins must equal the config's
 
 ## Rules
 
@@ -38,5 +40,8 @@ Pipeline:
 ## When it fails
 
 - Same failures as verify, since it runs the same gates; see that skill.
+- `bom.md (wiring matches <name>.yaml)` FAIL: the bill of materials
+  and the ESPHome config disagree on a pin. Both take their pins from
+  `panels.assign_pins`; fix whichever stopped doing so.
 - A model filter matches nothing and the run exits clean: the filter is
   the file's bare name (`punch_guide_gauge`, `three_toggles`), not a path.

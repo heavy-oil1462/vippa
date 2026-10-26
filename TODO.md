@@ -56,7 +56,7 @@
       the example panel garage; meters not now (docs/CONCEPT.md, Open
       questions)
 - [ ] Measure the real pilot lamps and their LED current
-- [ ] Bill of materials generated from the panel and catalog
+- [x] Bill of materials generated from the panel and catalog
 
 ## Phase 3: firmware
 
