@@ -1,8 +1,8 @@
-# 0003 Zigbee is the first radio
+# ADR-0003: Zigbee is the first radio
 
-## Status
+Status: Accepted
 
-Accepted (the owner, 2026-10-26)
+Decided by the owner, 2026-10-26.
 
 ## Context
 

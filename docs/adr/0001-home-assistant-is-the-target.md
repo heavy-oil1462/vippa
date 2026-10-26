@@ -1,8 +1,8 @@
-# 0001 Home Assistant is the target
+# ADR-0001: Home Assistant is the target
 
-## Status
+Status: Accepted
 
-Accepted (the owner, 2026-10-26)
+Decided by the owner, 2026-10-26.
 
 ## Context
 

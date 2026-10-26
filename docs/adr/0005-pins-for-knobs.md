@@ -1,8 +1,8 @@
-# 0005 Pins for knobs: named pins and a resistor ladder
+# ADR-0005: Pins for knobs: named pins and a resistor ladder
 
-## Status
+Status: Accepted
 
-Accepted (the supervisor, in review of #21)
+Decided by the supervisor, in review of #21.
 
 ## Context
 
