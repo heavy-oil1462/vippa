@@ -65,6 +65,15 @@ holder_screw_d = 2.2;   // small self tapping screw, e.g. 2.2 x 4.5
 holder_screw_len = 4.5;
 face_skin = 1.5;        // wood left in front of a screw tip
 
+// --- Printed parts fitted to each other or to bought parts ---
+slip_fit = 0.2;         // gap per side for a printed part to slide over a
+                        // bought one or into another print without play:
+                        // a bezel over the display's LED block, the
+                        // router step plate into the router template.
+                        // PLACEHOLDER: MEASURE with a test print of both,
+                        // never tune by eye. Printer, profile and
+                        // filament specific.
+
 // --- Template labels ---
 label_depth = 0.6;      // text engraved into the exposed face
 label_size = 4;         // text size

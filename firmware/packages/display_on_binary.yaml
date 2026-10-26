@@ -1,0 +1,14 @@
+# Lights a display when a binary input changes: a toggle flips, a
+# pushbutton or an encoder's push is pressed or let go. The initial
+# state at a wake is no event (ESPHome does not trigger on it). See
+# display.yaml.
+#
+# Vars (one !include per binary input and display, from
+# scripts/firmware.py):
+#   source   ESPHome id of the binary sensor
+#   display  ESPHome id of the display
+
+binary_sensor:
+  - id: !extend ${source}
+    on_state:
+      - script.execute: ${display}_show

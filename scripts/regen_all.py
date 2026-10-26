@@ -8,13 +8,17 @@ Pipeline:
   1. scripts/check_params.py     shared dimensions are never shadowed
   2. scripts/check_style.py      docs and comments follow the writing rules
   3. scripts/panels.py           catalog and every panel config are valid
+     scripts/check_panel_rules.py each display check fails a broken panel
   4. every model under cad/      -> build/<category>/<name>.stl
-     catalog modules with a "model" (printed holders) must match their
-     catalog size: the STL bounding box is compared with "size"
+     catalog parts with a "model" (printed holders and bezels) must match
+     the catalog: the STL bounding box is compared with a module's
+     "size", a display's "bezel"
   5. every panels/<name>.json    -> build/panels/<name>/
        <name>.scad               wrapper to open in OpenSCAD
        punch_template.stl        front template, print orientation
        router_template.stl       back template, print orientation
+       router_step.stl           its step plate for the display windows,
+                                 only on a panel with a display (ADR-0006)
        front.png, back.png       quick reference renders of the panel
        <name>.yaml               ESPHome config (scripts/firmware.py),
                                  validated with esphome config
@@ -54,7 +58,7 @@ ROOT = Path(__file__).resolve().parent.parent
 CAD = ROOT / "cad"
 BUILD = ROOT / "build"
 NON_MODELS = {"design_params"}
-GATES = ["check_params.py", "check_style.py", "panels.py"]
+GATES = ["check_params.py", "check_style.py", "panels.py", "check_panel_rules.py"]
 # (output name, wrapper part, extra openscad args)
 PANEL_OUTPUTS = [
     ("punch_template.stl", "punch", []),
@@ -64,6 +68,8 @@ PANEL_OUTPUTS = [
     ("back.png", "panel", ["--imgsize=1000,700", "--camera=0,0,0,130,0,20,0",
                            "--viewall", "--autocenter", "--colorscheme=Tomorrow"]),
 ]
+# Rendered only for a panel with a display.
+DISPLAY_OUTPUTS = [("router_step.stl", "router_step", [])]
 
 
 def models():
@@ -103,22 +109,28 @@ def bbox_size(stl: Path):
     return [max(v[i] for v in p) - min(v[i] for v in p) for i in range(3)]
 
 
+# catalog family -> the field a printed model's envelope must match: a
+# module's size, a display's bezel
+MODEL_SIZE_FIELD = {"module": "size", "display": "bezel"}
+
+
 def check_model_sizes(catalog, stl_of) -> bool:
-    """Printed catalog modules: the model's envelope is the catalog size."""
+    """Printed catalog parts: the model's envelope is the catalog size."""
     ok = True
     for name, entry in sorted(catalog.items()):
         if "model" not in entry:
             continue
+        field = MODEL_SIZE_FIELD[entry["family"]]
         stl = stl_of(ROOT / entry["model"])
         if not stl.exists():
             print(f"[FAIL] catalog {name}: model {entry['model']} has no STL")
             ok = False
             continue
         got = bbox_size(stl)
-        good = all(abs(g - s) <= SIZE_TOLERANCE for g, s in zip(got, entry["size"]))
+        good = all(abs(g - s) <= SIZE_TOLERANCE for g, s in zip(got, entry[field]))
         ok &= good
         print(f"[{'ok' if good else 'FAIL'}] catalog {name}: model envelope"
-              f" {[round(g, 2) for g in got]}, catalog size {entry['size']}")
+              f" {[round(g, 2) for g in got]}, catalog {field} {entry[field]}")
     return ok
 
 
@@ -152,7 +164,8 @@ def main(argv):
             real = BUILD / "panels" / name
             panel = panels.load_panel(name)
             scad = panels.wrapper(name, panel, catalog, target(real / f"{name}.scad"))
-            for out, part, extra in PANEL_OUTPUTS:
+            outputs = PANEL_OUTPUTS + (DISPLAY_OUTPUTS if panels.has_display(panel, catalog) else [])
+            for out, part, extra in outputs:
                 ok &= run_one(scad, target(real / out), real / out,
                               ["-D", f'part="{part}"', *extra])
             yaml = firmware.config(name, panel, catalog, target(real / f"{name}.yaml"))

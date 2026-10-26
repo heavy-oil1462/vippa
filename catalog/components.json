@@ -100,6 +100,32 @@
     "measured": false,
     "source": "PLACEHOLDER: typical datasheet values for a 16 mm stainless anti-vandal momentary pushbutton with solder lugs, in the style of the Onpow GQ16 series; not taken from a real part. The head clamps the face against one back nut, so max_panel_t is the thread less the nut and a washer. body is the thread left behind the nut plus the switch and lugs. keepout_d is judgement, room for a fingertip and the nut wrench. Replace with calipers on the buttons you mount."
   },
+  "led_segment_4d": {
+    "description": "4 digit 0.36 in red LED 7 segment module on a TM1637 driver (CLK, DIO), seen through a window routed in the face, framed by a printed bezel",
+    "family": "display",
+    "digits": [
+      30.0,
+      14.0,
+      7.2
+    ],
+    "window": [
+      31.0,
+      15.0
+    ],
+    "body": [
+      42.0,
+      24.0,
+      8.0
+    ],
+    "bezel": [
+      39.0,
+      23.0,
+      4.0
+    ],
+    "model": "cad/bezels/led_segment_4d_bezel.scad",
+    "measured": false,
+    "source": "PLACEHOLDER: typical values for the common 42 x 24 mm TM1637 module with a 0.36 in 4 digit common anode display, as sold under many names; not taken from a real part. digits is the LED block, 30 x 14 and 7.2 tall above the board, per typical 0.36 in display datasheets. window is the block plus 0.5 mm all round, routed through the face and squared with a chisel. body is the board and the right angle header with its plug behind the face underside, 8 mm being judgement. bezel is the envelope of cad/bezels/led_segment_4d_bezel.scad (regen_all.py checks it). Replace with calipers on the module you mount."
+  },
   "esp32_devboard": {
     "description": "ESP32-H2 board (Zigbee, no wifi) with an onboard PCB antenna at one end and a USB connector at the other",
     "family": "module",
