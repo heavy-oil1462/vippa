@@ -1,0 +1,17 @@
+{
+  "description": "Room scenes: an oak slab with six miniature toggles centered in two rows of three, the ESP32 board standing beside them and the inline AA holder below",
+  "board": {"w": 166, "h": 123, "t": 22, "chamfer": 2, "material": "oak"},
+  "cavity": {"face_t": 4, "rim": 15, "r": 8},
+  "components": [
+    {"id": "morning", "type": "toggle_6mm", "x": 53, "y": 76.5},
+    {"id": "day", "type": "toggle_6mm", "x": 83, "y": 76.5},
+    {"id": "evening", "type": "toggle_6mm", "x": 113, "y": 76.5},
+    {"id": "movie", "type": "toggle_6mm", "x": 53, "y": 46.5},
+    {"id": "dinner", "type": "toggle_6mm", "x": 83, "y": 46.5},
+    {"id": "night", "type": "toggle_6mm", "x": 113, "y": 46.5}
+  ],
+  "internals": [
+    {"id": "battery", "type": "battery_2aa_holder", "x": 83, "y": 28.5},
+    {"id": "esp", "type": "esp32_devboard", "x": 133, "y": 72, "rot": 90}
+  ]
+}

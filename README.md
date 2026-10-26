@@ -69,6 +69,34 @@ gets the next free pin in a fixed order (`PIN_ORDER` in
 Your tools go in `cad/design_params.scad`: center punch, guide bushing,
 router bit and print bed.
 
+## Example panels
+
+Ready to print and build as they are, each in `panels/`. Every one
+has its controls on the board center lines and the smallest board the
+checks allow around them.
+
+- `three_toggles`: the first panel, three lights or rooms. Oak,
+  190 x 107 x 27 mm, three full size toggles in a row.
+
+  ![The three_toggles panel](media/panels/three_toggles.png)
+
+- `bedside`: a bedside or desk lamp switch. Walnut, 175 x 93 x 27 mm,
+  one full size toggle, the ESP32 board beside it.
+
+  ![The bedside panel](media/panels/bedside.png)
+
+- `hallway`: hall and stairs lights. Oak, 162 x 107 x 27 mm, two full
+  size toggles in a row.
+
+  ![The hallway panel](media/panels/hallway.png)
+
+- `scenes`: room scenes (morning, day, evening, movie, dinner, night).
+  Oak, 166 x 123 x 22 mm, six miniature toggles in two rows of three.
+
+  ![The scenes panel](media/panels/scenes.png)
+
+The pictures come from `python3 scripts/render_hero.py --panels`.
+
 ## Calibration first
 
 Print `cad/calibration/punch_guide_gauge.scad`, try your center punch in
@@ -83,6 +111,7 @@ Everything is driven from one script:
 python3 scripts/regen_all.py           # checks, then every template into build/
 python3 scripts/regen_all.py --check   # read-only gate, what CI runs
 python3 scripts/render_hero.py         # the README images (Blender, minutes)
+python3 scripts/render_hero.py --panels # one picture per example panel
 ```
 
 `build/panels/<name>/` gets `punch_template.stl`, `router_template.stl`,

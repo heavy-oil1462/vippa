@@ -1,0 +1,13 @@
+{
+  "description": "Hallway: an oak slab with two full size toggles centered in a row, hall and stairs lights, on two AA cells",
+  "board": {"w": 162, "h": 107, "t": 27, "chamfer": 2, "material": "oak"},
+  "cavity": {"face_t": 4, "rim": 15, "r": 8},
+  "components": [
+    {"id": "hall", "type": "toggle_12mm", "x": 56, "y": 53.5},
+    {"id": "stairs", "type": "toggle_12mm", "x": 106, "y": 53.5}
+  ],
+  "internals": [
+    {"id": "battery", "type": "battery_2aa_holder", "x": 81, "y": 32.5},
+    {"id": "esp", "type": "esp32_devboard", "x": 81, "y": 77}
+  ]
+}

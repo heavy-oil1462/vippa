@@ -26,6 +26,9 @@
 - [x] Controls centered on the face, internals around them; panels.py
       reports an off center panel as [info]
 - [x] Radio: Zigbee sleepy end device on an ESP32-H2 (docs/CONCEPT.md)
+- [x] Example panels (bedside, hallway, scenes) with README pictures,
+      miniature toggle in the catalog (placeholder values)
+- [ ] Measure the real miniature toggles
 - [ ] Measure on an ESP32-H2 dev kit with ESPHome zigbee: sleep current
       and flip to light latency (target under 300 ms). Do this before the
       hardware is final

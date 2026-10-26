@@ -29,6 +29,15 @@ python3 scripts/regen_all.py <name>       # templates and previews into build/pa
 }
 ```
 
+## Examples
+
+panels/ holds ready-made examples, each with a README picture in
+media/panels/: three_toggles (the first panel, three full size toggles
+in a row), bedside (one toggle, walnut, the ESP32 board beside it),
+hallway (two toggles in a row) and scenes (six miniature toggles in two
+rows of three, a 22 mm board, the ESP32 board turned 90 beside them).
+Start a new panel from the closest one.
+
 ## Layout: start centered
 
 A new panel starts from a centered row: put the components first, with
@@ -43,6 +52,8 @@ why in its description.
 
 - Millimetres. x, y are hole centers measured from the reference corner:
   bottom left seen from the front.
+- material: the board wood, one of WOODS in panels.py (oak, walnut);
+  the renders use it. Default oak.
 - face_t: wood left over the cavity; it must not exceed any component's
   max_panel_t. rim: wood around the cavity. r: cavity corner radius, at
   least the router bit radius.
@@ -69,8 +80,11 @@ why in its description.
 2. Run `regen_all.py <name>`, then look at `front.png` and `back.png` in
    build/panels/<name>/ with the Read tool. State what they should show
    first.
-3. If the panel is the hero panel (HERO_PANEL in render_hero.py),
-   regenerate media/ with the hero-render skill in the same change.
+3. Render its picture with `render_hero.py --panels --panel <name>`
+   (hero-render skill) into media/panels/<name>.png, and give it a line
+   in the README's Example panels section. If the panel is the hero
+   panel (HERO_PANEL in render_hero.py), regenerate the media/ shots
+   too, in the same change.
 4. Run verify before committing.
 
 ## When it fails

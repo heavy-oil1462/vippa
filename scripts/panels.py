@@ -10,6 +10,7 @@ both files and writes the wrapper .scad that cad/lib/panel.scad renders.
 Layout rules checked here (tooling rules, such as router bit against
 cavity corner, are asserts in cad/lib/panel.scad):
 
+  - the board material, if given, is one of WOODS
   - every type exists in the catalog with the right kind, ids are unique
   - the face is thin enough for every bushing (face_t <= max_panel_t)
   - the cavity is deep enough for every back nut and body, and for
@@ -74,6 +75,9 @@ FINISHES = {"pcb", "aa_holder"}
 # Keep-in-sync sweep: the c_* and i_* index functions in cad/lib/panel.scad.
 COMPONENT_RECORD = ["hole_d", "bushing_d", "bushing_len", "nut_af", "nut_t",
                     "lever_d", "lever_len"]
+# Board materials the renders know. Keep-in-sync sweep: PBR() in
+# scripts/hero_scene.py. Brass waits for its open question (CONCEPT.md).
+WOODS = {"oak", "walnut"}
 INTERNAL_CLEARANCE = 2.0  # mm around internals, for wires and fingers
 CENTER_TOLERANCE = 1.0  # mm the components' center may sit off the board center
 PARTS = ["panel", "punch", "router", "hero", "build"]
@@ -132,6 +136,10 @@ def panel_names():
 
 def load_panel(name):
     return json.loads((PANELS / f"{name}.json").read_text())
+
+
+def board_material(panel):
+    return panel["board"].get("material", "oak")
 
 
 def in_rounded_rect(px, py, x0, y0, x1, y1, r):
@@ -226,6 +234,8 @@ def validate(panel, catalog):
         return ["board and cavity values must be numbers"]
     if not comps:
         return ["no components"]
+    if board_material(panel) not in WOODS:
+        errors.append(f"board material {board_material(panel)!r} is not one of {sorted(WOODS)}")
     depth = t - face_t
     x0, y0, x1, y1 = rim, rim, w - rim, h - rim
     ids = [c.get("id") for c in comps + internals]
