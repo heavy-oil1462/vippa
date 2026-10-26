@@ -7,7 +7,8 @@ scripts/render_hero.py invokes it inside headless Blender as
 One PLY per material lands in mesh_dir (render_hero.py's MATERIALS maps
 the color tags to the names); PBR() below owns what each material looks
 like. Studio setup: dark backdrop, warm key, cool fill and a strong rim
-so the chrome reads as metal and the oak grain catches the light.
+so the chrome reads as metal and the wood grain catches the light. The
+board's PLY is named after its wood (panels.WOODS), one of WOODS here.
 """
 
 import math
@@ -29,13 +30,23 @@ def principled(name, **inputs):
     return mat
 
 
-def oak():
-    """Oiled oak: growth rings around the board's long (x) axis, the way a
-    flat sawn board is cut from the log. The ring center sits well outside
-    the board so the face shows long bands in every orientation the shots
-    use. Low frequency noise warps the rings so their spacing wanders, and
-    a sawtooth profile gives each ring a thin dark latewood line."""
-    mat = principled("oak", roughness=0.42)
+# Oiled hardwood colors (linear RGB): earlywood, the ring body toward the
+# latewood, and the thin latewood line.
+WOODS = {
+    "oak": ((0.36, 0.215, 0.10, 1), (0.31, 0.18, 0.08, 1), (0.21, 0.115, 0.05, 1)),
+    "walnut": ((0.105, 0.058, 0.032, 1), (0.085, 0.046, 0.025, 1), (0.04, 0.021, 0.012, 1)),
+}
+
+
+def wood(name):
+    """Oiled hardwood: growth rings around the board's long (x) axis, the
+    way a flat sawn board is cut from the log. The ring center sits well
+    outside the board so the face shows long bands in every orientation
+    the shots use. Low frequency noise warps the rings so their spacing
+    wanders, and a sawtooth profile gives each ring a thin dark latewood
+    line. WOODS sets the colors."""
+    early, body, latewood = WOODS[name]
+    mat = principled(name, roughness=0.42)
     nodes, links = mat.node_tree.nodes, mat.node_tree.links
     bsdf = nodes["Principled BSDF"]
     coord = nodes.new("ShaderNodeTexCoord")
@@ -61,10 +72,10 @@ def oak():
     wave.inputs["Detail"].default_value = 2.0
     ramp = nodes.new("ShaderNodeValToRGB")
     els = ramp.color_ramp.elements
-    els[0].position, els[0].color = 0.0, (0.36, 0.215, 0.10, 1)
-    els[1].position, els[1].color = 0.86, (0.31, 0.18, 0.08, 1)
+    els[0].position, els[0].color = 0.0, early
+    els[1].position, els[1].color = 0.86, body
     late = els.new(0.95)
-    late.color = (0.21, 0.115, 0.05, 1)
+    late.color = latewood
     tone = nodes.new("ShaderNodeTexNoise")
     tone.inputs["Scale"].default_value = 3.0
     shade = nodes.new("ShaderNodeMix")
@@ -90,8 +101,8 @@ def oak():
 
 
 def PBR(name):
-    if name == "oak":
-        return oak()
+    if name in WOODS:
+        return wood(name)
     if name == "chrome":
         return principled(name, base_color=(0.80, 0.80, 0.82, 1),
                           metallic=1.0, roughness=0.12)

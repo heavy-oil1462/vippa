@@ -4,8 +4,17 @@
     python3 scripts/render_hero.py                  # every shot, full quality
     python3 scripts/render_hero.py hero --draft     # one shot, small and fast
     python3 scripts/render_hero.py --draft --out DIR
+    python3 scripts/render_hero.py --panels         # one hero shot per panel
+    python3 scripts/render_hero.py --panels --panel bedside
+    python3 scripts/render_hero.py hero --panel scenes --draft --out DIR
 
-Pipeline: scripts/panels.py writes the wrapper for HERO_PANEL, OpenSCAD
+The shots show HERO_PANEL as media/<shot>.png, or the panel given with
+--panel (into --out, so the README images are never overwritten by
+another panel). --panels renders PANEL_SHOT of every panel in panels/,
+or of the --panel ones, as <out>/panels/<name>.png: the example
+pictures in the README.
+
+Pipeline: scripts/panels.py writes the wrapper for the panel, OpenSCAD
 exports the shot's part as a colored 3MF (the color() tags in
 cad/lib/panel.scad are the material tags), this script splits the mesh
 into one PLY per material, and headless Blender (Cycles, CPU) renders
@@ -35,12 +44,15 @@ from render_scad import nix_path, render
 ROOT = Path(__file__).resolve().parent.parent
 SCENE = ROOT / "scripts" / "hero_scene.py"
 HERO_PANEL = "three_toggles"
+PANEL_SHOT = "hero"  # the shot --panels renders of each panel
 
 # 3MF displaycolor (the color() tags in cad/lib/panel.scad) -> material
 # name. hero_scene.py owns the PBR definition for each name. Keep-in-sync
 # sweep: the tags in panel.scad, this table and PBR() in hero_scene.py.
+# The board's tag (OAK in panel.scad) is "wood": it renders as the
+# panel's board material, one of panels.WOODS.
 MATERIALS = {
-    "C8A165": "oak",
+    "C8A165": "wood",
     "C0C0C0": "chrome",
     "222222": "black",
     "E8E4DA": "printed",
@@ -65,8 +77,9 @@ def export_3mf(scad: Path, part: str, out: Path) -> None:
         sys.exit(f"[FAIL] 3MF export of {part}:\n{proc.stderr[-2000:]}")
 
 
-def split_by_material(threemf: Path, mesh_dir: Path) -> None:
-    """One ascii PLY per material color; die on untagged geometry."""
+def split_by_material(threemf: Path, mesh_dir: Path, wood: str) -> None:
+    """One ascii PLY per material color, the board as the wood material
+    named; die on untagged geometry."""
     root = ET.fromstring(zipfile.ZipFile(threemf).read("3D/3dmodel.model"))
     colors = [b.get("displaycolor").lstrip("#")[:6].upper()
               for b in root.findall(".//m:basematerials/m:base", M3MF)]
@@ -86,7 +99,7 @@ def split_by_material(threemf: Path, mesh_dir: Path) -> None:
             if name is None:
                 sys.exit(f"[FAIL] untagged geometry: color #{colors[idx]} has no"
                          " entry in MATERIALS")
-            groups[name].append((verts, tris))
+            groups[wood if name == "wood" else name].append((verts, tris))
 
     for name, meshes in sorted(groups.items()):
         vlines, flines, base = [], [], 0
@@ -116,25 +129,47 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("shots", nargs="*", choices=[[], *SHOTS], default=[])
-    ap.add_argument("--out", type=Path, default=ROOT / "media")
+    ap.add_argument("--out", type=Path, default=None, help="default media/")
+    ap.add_argument("--panel", action="append", choices=panels.panel_names(),
+                    help=f"the panel to render (default {HERO_PANEL}); with --panels,"
+                         " repeat it to render only these")
+    ap.add_argument("--panels", action="store_true",
+                    help=f"the {PANEL_SHOT} shot of every panel into <out>/panels/<name>.png")
     ap.add_argument("--draft", action="store_true",
                     help="640x480, few samples, for scene iteration")
     args = ap.parse_args()
     width, height, samples = (640, 480, 24) if args.draft else (1920, 1280, 160)
 
-    args.out.mkdir(parents=True, exist_ok=True)
+    if args.panels:
+        if args.shots:
+            ap.error("--panels renders the hero shot only, give no shots")
+        out_dir = (args.out or ROOT / "media") / "panels"
+        jobs = [(name, PANEL_SHOT, out_dir / f"{name}.png")
+                for name in args.panel or panels.panel_names()]
+    else:
+        if len(args.panel or []) > 1:
+            ap.error("one --panel without --panels")
+        name = (args.panel or [HERO_PANEL])[0]
+        if name != HERO_PANEL and args.out is None:
+            ap.error(f"media/ holds the {HERO_PANEL} shots; give --out for {name}")
+        out_dir = args.out or ROOT / "media"
+        jobs = [(name, shot, out_dir / f"{shot}.png") for shot in args.shots or SHOTS]
+
+    out_dir.mkdir(parents=True, exist_ok=True)
     catalog, errors = panels.load_catalog()
     if errors:
         sys.exit("[FAIL] catalog: " + "; ".join(errors))
-    for shot in args.shots or SHOTS:
+    for name, shot, out in jobs:
         part, azim, elev, dist = SHOTS[shot]
-        out = args.out / f"{shot}.png"
+        panel = panels.load_panel(name)
+        problems = panels.validate(panel, catalog)
+        if problems:
+            sys.exit(f"[FAIL] panels/{name}.json: " + "; ".join(problems))
         with tempfile.TemporaryDirectory() as tmp:
             mesh_dir = Path(tmp)
-            scad = panels.wrapper(HERO_PANEL, panels.load_panel(HERO_PANEL), catalog,
-                                  mesh_dir / f"{HERO_PANEL}.scad")
+            scad = panels.wrapper(name, panel, catalog, mesh_dir / f"{name}.scad")
             export_3mf(scad, part, mesh_dir / "scene.3mf")
-            split_by_material(mesh_dir / "scene.3mf", mesh_dir)
+            split_by_material(mesh_dir / "scene.3mf", mesh_dir, panels.board_material(panel))
             # the sandbox's LD_LIBRARY_PATH segfaults nix blender: drop it
             env = {k: v for k, v in os.environ.items() if k != "LD_LIBRARY_PATH"}
             proc = subprocess.run(
@@ -144,7 +179,7 @@ def main() -> int:
                 env=env, capture_output=True, text=True)
             tail = "\n".join((proc.stdout + proc.stderr).splitlines()[-12:])
             if proc.returncode != 0 or not out.exists():
-                sys.exit(f"[FAIL] blender render of {shot}:\n{tail}")
+                sys.exit(f"[FAIL] blender render of {name} {shot}:\n{tail}")
         shown = out.relative_to(ROOT) if out.is_relative_to(ROOT) else out
         print(f"ok: {shown} ({width}x{height})", flush=True)
     return 0
